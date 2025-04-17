@@ -1,2 +1,4 @@
 .ipynb_checkpoints
 cm_logs/
+*.pyc
+*.txt
