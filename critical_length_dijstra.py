@@ -45,7 +45,7 @@ def robust_keep_by_knn(D, k=4, n_sigmas=3.0):
 #                 adj[i].append((j, float(D[i,j])))
 #     return adj, r
 
-def build_graph(D, k_med, L0=70.0, penalty_factor=1.0):
+def build_graph(D, k_med, L0=50.0, penalty_factor=3.0):
     """
     Build adjacency list from distance matrix D with a penalty for long edges.
     
@@ -99,52 +99,60 @@ def turn_angle(p, u, v, X, Y):
     da = (a2 - a1 + math.pi) % (2*math.pi) - math.pi  # wrap to [-pi, pi]
     return abs(da)
 
-def dijkstra_with_angle(adj, src, X, Y, angle_bias_m_per_rad=8.0):
+# --- replace your angle Dijkstra with step + floor penalties ---
+def dijkstra_with_angle(adj, src, X, Y,
+                        angle_bias_m_per_rad=8.0,
+                        step_penalty_m=5.0,        # NEW: fixed cost per edge
+                        min_edge_cost_m=15.0):      # NEW: floor for very short edges
     """
-    Dijkstra over expanded state space (node u, previous node p).
-    Edge cost = euclidean(u,v) + angle_bias_m_per_rad * turn_angle(p,u,v).
-    When p == -1 (start), no angle penalty.
-    Returns:
-      best_dist_to: array of best distances to each node (min over p)
-      best_prev_state: for reconstructing a path to any target node
-      best_last_prev: the prev node p that achieved best_dist_to for each node
+    Expanded-state Dijkstra on states (u, p) with:
+      cost = max(w, min_edge_cost_m)                 # floor short edges
+            + step_penalty_m                         # fixed per-edge cost
+            + angle_bias_m_per_rad * turn_angle(p,u,v)  # turn cost
     """
+    import heapq, math
     n = len(adj)
     INF = 1e30
-    # distance for state (u,p): dict keyed by (u,p)
     dist = {}
-    prev_state = {}  # (u,p) -> (prev_u, prev_p)
-    # best per terminal node (min over p)
+    prev_state = {}
     best_dist_to = [INF]*n
-    best_last_prev = [-1]*n  # the p associated with best_dist_to[u]
+    best_last_prev = [-1]*n
 
-    # start state
-    start_state = (src, -1)
-    dist[start_state] = 0.0
+    start = (src, -1)
+    dist[start] = 0.0
     best_dist_to[src] = 0.0
-    best_last_prev[src] = -1
-    pq = [(0.0, src, -1)]  # (d, u, p)
+    pq = [(0.0, src, -1)]
+
+    def turn_angle(p, u, v):
+        if p == -1: return 0.0
+        a1 = math.atan2(Y[u]-Y[p], X[u]-X[p])
+        a2 = math.atan2(Y[v]-Y[u], X[v]-X[u])
+        da = (a2 - a1 + math.pi) % (2*math.pi) - math.pi
+        return abs(da)
 
     while pq:
-        d, u, p = heapq.heappop(pq)
-        state = (u, p)
-        if d != dist.get(state, INF):
-            continue
-
+        d,u,p = heapq.heappop(pq)
+        state = (u,p)
+        if d != dist.get(state, INF): continue
         for v, w in adj[u]:
-            penalty = 0.0 if p == -1 else angle_bias_m_per_rad * turn_angle(p, u, v, X, Y)
-            nd = d + w + penalty
-            next_state = (v, u)
-            if nd < dist.get(next_state, INF) - 1e-9:
-                dist[next_state] = nd
-                prev_state[next_state] = state
+            base = max(w, min_edge_cost_m)             # floor short edges
+            penalty = step_penalty_m + angle_bias_m_per_rad * turn_angle(p,u,v)
+            nd = d + base + penalty
+            nxt = (v, u)
+            if nd < dist.get(nxt, INF) - 1e-9:
+                dist[nxt] = nd
+                prev_state[nxt] = state
                 heapq.heappush(pq, (nd, v, u))
-                # update best for terminal node v
                 if nd < best_dist_to[v] - 1e-9:
                     best_dist_to[v] = nd
                     best_last_prev[v] = u
-
     return best_dist_to, prev_state, best_last_prev
+
+# helper: true (unpenalized) length of a node path, using the base distance matrix
+def path_true_length_m(D_base, path):
+    if len(path) < 2: 
+        return 0.0
+    return float(sum(D_base[path[i], path[i+1]] for i in range(len(path)-1)))
 
 def reconstruct_path_from_states(prev_state, end_node, last_prev):
     """Reconstruct path to end_node using prev_state mapping and (end_node, last_prev) state."""
@@ -218,6 +226,12 @@ if order:
         path_indices = reconstruct_path_from_states(prev_a, b, bestprev_a[b])
         start_idx, end_idx = a, b
 
+        # NEW: compute true length from the base distances (meters)
+        true_len_m = path_true_length_m(D_f, path_indices)
+        diameter_km = true_len_m / 1000.0  # <- use this for display
+
+        # (optional) if you want to see how big the penalty made it:
+        penalized_cost_km = dist_a[b] / 1000.0
 # --- bounds (2x around filtered bbox) ---
 lat_min, lat_max = filtered["lat"].min(), filtered["lat"].max()
 lon_min, lon_max = filtered["lon"].min(), filtered["lon"].max()
