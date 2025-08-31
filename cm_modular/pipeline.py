@@ -79,28 +79,39 @@ class Pipeline:
         comps, sizes, order, cluster_id = Clusterer.assign_from_components(adj)
         filtered["cluster"] = cluster_id
 
-        # diameter path on largest component using angle-biased metric
+       # diameter path on largest component using *geometric* endpoint selection
         path_indices: list[int] = []
         start_idx = end_idx = None
         diameter_km = 0.0
+
         if order:
             main = comps[order[0]]
             if len(main) >= 2:
-                router = AngleBiasedRouter(x_f, y_f,
-                                           angle_bias_m_per_rad=self.cfg.angle_bias_m_per_rad,
-                                           step_penalty_m=self.cfg.step_penalty_m,
-                                           min_edge_cost_m=self.cfg.min_edge_cost_m)
+                router = AngleBiasedRouter(
+                    x_f, y_f,
+                    angle_bias_m_per_rad=self.cfg.angle_bias_m_per_rad,
+                    step_penalty_m=self.cfg.step_penalty_m,
+                    min_edge_cost_m=self.cfg.min_edge_cost_m
+                )
+
+                # 1) Build geometric-cost adjacency (same connectivity, weights = D_f)
+                adj_geom = router.as_geometric_adjacency(adj, D_f)
+
+                # 2) Find farthest pair under geometric distance
                 s0 = main[0]
-                dist0, prev0, bestprev0 = router.dijkstra(adj, s0)
+                dist0, _ = router.dijkstra_plain(adj_geom, s0)
                 a = max(main, key=lambda i: dist0[i])
-                dist_a, prev_a, bestprev_a = router.dijkstra(adj, a)
+                dist_a, _ = router.dijkstra_plain(adj_geom, a)
                 b = max(main, key=lambda i: dist_a[i])
-                penalized_cost_km = dist_a[b] / 1000.0  # for debug/inspection
+
+                # 3) Compute *path* with penalized/angle-biased router
+                _, prev_a, bestprev_a = router.dijkstra(adj, a)
                 path_indices = router.reconstruct_path(prev_a, b, bestprev_a[b])
                 start_idx, end_idx = a, b
 
-                # Use *true* geometric length for display
+                # 4) True geometric length for display
                 diameter_km = router.path_true_length_m(D_f, path_indices) / 1000.0
+
 
         # map
         m = self.map_builder.build(

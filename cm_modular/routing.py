@@ -78,6 +78,60 @@ class AngleBiasedRouter:
                         best_last_prev[v] = u
         return best_dist_to, prev_state, best_last_prev
 
+    def dijkstra_plain(adj: list[list[tuple[int, float]]], src: int):
+        """Standard Dijkstra on adjacency `adj` using the provided edge weights.
+
+        This ignores turn/step/long-edge penalties entirely. Use it when you want
+        distances under *pure* edge costs (e.g., geometric meters), typically by
+        passing an adjacency where each edge weight is D_base[i, j].
+
+        Parameters
+        ----------
+        adj : list[list[tuple[int, float]]]
+            Adjacency list where `adj[u]` is a list of `(v, w)` pairs.
+        src : int
+            Source node index.
+
+        Returns
+        -------
+        dist : list[float]
+            Best-known cost from `src` to each node.
+        prev : list[int]
+            Backpointer (parent) for path reconstruction under this metric.
+        """
+        import heapq
+        INF = 1e30
+        n = len(adj)
+        dist = [INF] * n
+        prev = [-1] * n
+        dist[src] = 0.0
+        pq: list[tuple[float, int]] = [(0.0, src)]
+
+        while pq:
+            d, u = heapq.heappop(pq)
+            if d != dist[u]:
+                continue
+            for v, w in adj[u]:
+                nd = d + w
+                if nd < dist[v] - 1e-9:
+                    dist[v] = nd
+                    prev[v] = u
+                    heapq.heappush(pq, (nd, v))
+        return dist, prev
+
+
+    def as_geometric_adjacency(adj: list[list[tuple[int, float]]], D_base) -> list[list[tuple[int, float]]]:
+        """Return a copy of `adj` with each weight replaced by the geometric distance `D_base[i, j]`.
+
+        Useful to run `dijkstra_plain` on the same connectivity but with *true* (unpenalized)
+        edge costs.
+        """
+        G = []
+        for i, nbrs in enumerate(adj):
+            G.append([(j, float(D_base[i, j])) for (j, _w) in nbrs])
+        return G
+
+
     @staticmethod
     def reconstruct_path(prev_state: Dict[tuple[int,int], tuple[int,int]], end_node: int, last_prev: int) -> list[int]:
         """Reconstruct a node path using state backpointers."""
