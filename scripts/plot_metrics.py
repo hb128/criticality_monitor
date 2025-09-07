@@ -4,11 +4,11 @@ Plot columns from a metrics CSV (like the one produced by your pipeline).
 
 Examples
 --------
-# Basic: plot diameter_km over (parsed) timestamp from the 'file' path
+# Basic: plot length_m over (parsed) timestamp from the 'file' path
 python plot_metrics.py metrics.csv
 
 # Choose columns
-python plot_metrics.py metrics.csv --y diameter_km n_filtered largest_comp_size
+python plot_metrics.py metrics.csv --y length_m n_filtered largest_comp_size
 
 # Pick a different x-axis (index) and save to PNG
 python plot_metrics.py metrics.csv --x index --out out.png
@@ -63,8 +63,8 @@ def main():
     p.add_argument(
         "--y",
         nargs="+",
-        default=["diameter_km"],
-        help="One or more Y columns to plot (default: diameter_km).",
+        default=["length_m"],
+        help="One or more Y columns to plot (default: length_m).",
     )
     p.add_argument(
         "--query",

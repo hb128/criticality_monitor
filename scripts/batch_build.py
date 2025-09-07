@@ -51,7 +51,7 @@ def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
     # diameter path on largest component using angle-biased metric
     path_indices = []
     start_idx = end_idx = None
-    diameter_km = 0.0
+    length_m = 0.0
     if order:
         main = comps[order[0]]
         if len(main) >= 2:
@@ -66,7 +66,7 @@ def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
             b = max(main, key=lambda i: dist_a[i])
             path_indices = router.reconstruct_path(prev_a, b, bestprev_a[b])
             start_idx, end_idx = a, b
-            diameter_km = router.path_true_length_m(D_f, path_indices) / 1000.0
+            length_m = router.path_true_length_m(D_f, path_indices)
 
     # map
     m = MapBuilder().build(
@@ -77,7 +77,7 @@ def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
         path_indices=path_indices,
         start_idx=start_idx,
         end_idx=end_idx,
-        diameter_km=diameter_km,
+        length_m=length_m,
         angle_bias_m_per_rad=cfg.angle_bias_m_per_rad,
         bounds_expand=cfg.bounds_expand,
     )
@@ -92,7 +92,7 @@ def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
         "n_filtered": int(len(filtered)),
         "largest_comp_size": int(sizes[order[0]]) if order else 0,
         "connection_radius_m": float(radius_m),
-        "diameter_km": float(diameter_km),
+        "length_m": float(length_m),
         "angle_bias_m_per_rad": float(cfg.angle_bias_m_per_rad),
         "L0_m": float(cfg.L0),
         "penalty_factor": float(cfg.penalty_factor),
@@ -162,7 +162,7 @@ def main():
                 "n_filtered": 0,
                 "largest_comp_size": 0,
                 "connection_radius_m": 0.0,
-                "diameter_km": 0.0,
+                "length_m": 0.0,
                 "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
                 "L0_m": cfg.L0,
                 "penalty_factor": cfg.penalty_factor,
@@ -171,7 +171,7 @@ def main():
 
     # Write CSV
     fieldnames = ["file", "html", "n_points", "n_bbox", "n_filtered", "largest_comp_size",
-                  "connection_radius_m", "diameter_km", "angle_bias_m_per_rad", "L0_m", "penalty_factor", "error"]
+                  "connection_radius_m", "length_m", "angle_bias_m_per_rad", "L0_m", "penalty_factor", "error"]
     # ensure 'error' column exists even on successful rows
     for r in rows:
         r.setdefault("error", "")

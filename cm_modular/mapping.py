@@ -33,7 +33,7 @@ class MapBuilder:
         path_indices: list[int] | None,
         start_idx: int | None,
         end_idx: int | None,
-        diameter_km: float,
+        length_m: float,
         angle_bias_m_per_rad: float,
         bounds_expand: float = 2.0,
     ) -> folium.Map:
@@ -75,7 +75,7 @@ class MapBuilder:
                 weight=3,
                 color=self.style.path_color,
                 opacity=0.9,
-                tooltip=f"Angle-biased diameter ~{diameter_km:.2f} km (bias={angle_bias_m_per_rad} m/rad)",
+                tooltip=f"Angle-biased diameter ~{length_m:.2f} km (bias={angle_bias_m_per_rad} m/rad)",
             ).add_to(m)
             if start_idx is not None and end_idx is not None:
                 s_lat = filtered.loc[start_idx, "lat"]; s_lon = filtered.loc[start_idx, "lon"]
@@ -90,7 +90,7 @@ class MapBuilder:
                     border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size:12px;">
           <div style="font-weight:600; margin-bottom:6px;">Clusters & Angle-biased Path</div>
           <div><span style="display:inline-block;width:10px;height:10px;background:{self.style.palette[0]};border:1px solid #333;margin-right:6px;"></span>largest cluster ({largest_size} pts)</div>
-          <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>diameter path ≈ {diameter_km:.2f} km</div>
+          <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>length path ≈ {length_m:.0f} m</div>
           <div>turn bias: {angle_bias_m_per_rad} m per rad</div>
           <div><span style="display:inline-block;width:10px;height:10px;background:#7f8c8d;border:1px solid #333;margin-right:6px;"></span>outliers</div>
         </div>

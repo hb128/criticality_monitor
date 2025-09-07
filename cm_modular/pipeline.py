@@ -89,9 +89,10 @@ class Pipeline:
        # diameter path on largest component using *geometric* endpoint selection
         path_indices: list[int] = []
         start_idx = end_idx = None
-        diameter_km = 0.0
+        length_m = 0.0
 
         if order:
+            # Take largest cluster
             main = comps[order[0]]
             if len(main) >= 2:
                 router = AngleBiasedRouter(
@@ -104,10 +105,13 @@ class Pipeline:
                 # 1) Build geometric-cost adjacency (same connectivity, weights = D_f)
                 adj_geom = router.as_geometric_adjacency(adj, D_f)
 
-                # 2) Find farthest pair under geometric distance
+                # 2) Find farthest pair under geometric distance (use plain geometry and no angle-bias to find real endpoints)
+                # select first point (random)
                 s0 = main[0]
                 dist0, _ = router.dijkstra_plain(adj_geom, s0)
+                # point furthest away from s0
                 a = max(main, key=lambda i: dist0[i])
+                # point furthest away from a
                 dist_a, _ = router.dijkstra_plain(adj_geom, a)
                 b = max(main, key=lambda i: dist_a[i])
 
@@ -117,7 +121,7 @@ class Pipeline:
                 start_idx, end_idx = a, b
 
                 # 4) True geometric length for display
-                diameter_km = router.path_true_length_m(D_f, path_indices) / 1000.0
+                length_m = router.path_true_length_m(D_f, path_indices)
 
 
         # Optional static graph plot (lon/lat positions)
@@ -148,7 +152,7 @@ class Pipeline:
             path_indices=path_indices,
             start_idx=start_idx,
             end_idx=end_idx,
-            diameter_km=diameter_km,
+            length_m=length_m,
             angle_bias_m_per_rad=self.cfg.angle_bias_m_per_rad,
             bounds_expand=self.cfg.bounds_expand,
         )

@@ -209,7 +209,7 @@ filtered["cluster"] = cluster_id
 
 # --- diameter path on largest comp using angle-biased metric ---
 angle_bias_m_per_rad = 8.0  # small penalty per radian of turning
-diameter_km = 0.0
+length_m = 0.0
 path_indices = []
 start_idx = end_idx = None
 
@@ -222,13 +222,11 @@ if order:
         a = max(main, key=lambda i: dist0[i])
         dist_a, prev_a, bestprev_a = dijkstra_with_angle(adj, a, x_f, y_f, angle_bias_m_per_rad)
         b = max(main, key=lambda i: dist_a[i])
-        diameter_km = dist_a[b] / 1000.0
+        length_m = dist_a[b]
         path_indices = reconstruct_path_from_states(prev_a, b, bestprev_a[b])
         start_idx, end_idx = a, b
-
-        # NEW: compute true length from the base distances (meters)
         true_len_m = path_true_length_m(D_f, path_indices)
-        diameter_km = true_len_m / 1000.0  # <- use this for display
+        length_m = true_len_m
 
         # (optional) if you want to see how big the penalty made it:
         penalized_cost_km = dist_a[b] / 1000.0
@@ -289,7 +287,7 @@ if path_indices:
         weight=3,
         color="#111111",
         opacity=0.9,
-        tooltip=f"Angle-biased diameter ~{diameter_km:.2f} km (bias={angle_bias_m_per_rad} m/rad)"
+        tooltip=f"Angle-biased diameter ~{length_m:.2f} km (bias={angle_bias_m_per_rad} m/rad)"
     ).add_to(m)
     s_lat = filtered.loc[start_idx, "lat"]; s_lon = filtered.loc[start_idx, "lon"]
     e_lat = filtered.loc[end_idx, "lat"];   e_lon = filtered.loc[end_idx, "lon"]
@@ -304,7 +302,7 @@ legend_html = f"""
             border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size:12px;">
   <div style="font-weight:600; margin-bottom:6px;">Clusters & Angle-biased Path</div>
   <div><span style="display:inline-block;width:10px;height:10px;background:{palette[0]};border:1px solid #333;margin-right:6px;"></span>largest cluster ({largest_size} pts)</div>
-  <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>diameter path ≈ {diameter_km:.2f} km</div>
+  <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>diameter path ≈ {length_m:.2f} km</div>
   <div>turn bias: {angle_bias_m_per_rad} m per rad</div>
   <div><span style="display:inline-block;width:10px;height:10px;background:#7f8c8d;border:1px solid #333;margin-right:6px;"></span>outliers</div>
 </div>
