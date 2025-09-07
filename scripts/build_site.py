@@ -191,13 +191,17 @@ def _render_html(data: dict) -> str:
   <body>
     <header>
       <h2 style="margin: 0">{html.escape(str(data.get('title', 'Metrics Plot')))}</h2>
-      <div class="muted">Click any point to open its map in a new tab.</div>
+      <div class="muted">Hover a point or row to preview. Click a point to open its map in a new tab.</div>
     </header>
     <main>
       <div id="chart"></div>
       <div>
+        <h3 style="margin: 6px 0 8px">Preview</h3>
+        <div id="viewerWrap" style="border:1px solid #eee; border-radius:6px; overflow:hidden; background:#fafafa; height:48vh; margin-bottom:10px;">
+          <iframe id="viewer" title="Map preview" style="width:100%; height:100%; border:0;" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+        </div>
         <h3 style="margin: 6px 0 8px">Runs</h3>
-        <div class="muted" style="margin-bottom:6px">Most recent first</div>
+        <div class="muted" style="margin-bottom:6px">Hover a row or a point to preview; click a point to open in a new tab. Most recent first</div>
         <table>
           <thead>
             <tr>
@@ -248,6 +252,13 @@ def _render_html(data: dict) -> str:
       Plotly.newPlot('chart', traces, layout, {{responsive: true}});
 
       const links = DATA.links;
+      const viewer = document.getElementById('viewer');
+      const setViewer = (url) => {{
+        if (!url) return;
+        try {{
+          if (viewer.getAttribute('src') !== url) viewer.setAttribute('src', url);
+        }} catch (e) {{ console.warn('Unable to set preview iframe src', e); }}
+      }};
       const openPoint = (pointIndex) => {{
         if (!links || pointIndex == null) return;
         const url = links[pointIndex];
@@ -259,6 +270,12 @@ def _render_html(data: dict) -> str:
         const idx = ev.points[0].pointIndex;
         openPoint(idx);
       }});
+      chartEl.on('plotly_hover', ev => {{
+        if (!ev || !ev.points || !ev.points.length) return;
+        const idx = ev.points[0].pointIndex;
+        const url = (links && links[idx]) || '';
+        if (url) setViewer(url);
+      }});
 
       // Build table (reverse chronological if x is datetime)
       const tbody = document.getElementById('rows');
@@ -268,6 +285,7 @@ def _render_html(data: dict) -> str:
       }} catch {{}}
       for (const r of rows) {{
         const tr = document.createElement('tr');
+        tr.dataset.idx = String(r.i);
         const t = r.t ? new Date(r.t).toLocaleString() : '-';
         tr.innerHTML = `
           <td class="muted">${{r.i}}</td>
@@ -277,6 +295,20 @@ def _render_html(data: dict) -> str:
           <td>${{r.html ? `<a href="${{r.html}}" target="_blank">open</a>` : ''}}</td>
         `;
         tbody.appendChild(tr);
+      }}
+      // Hover preview for table rows
+      tbody.addEventListener('mouseover', (e) => {{
+        const tr = e.target && (e.target.closest ? e.target.closest('tr') : null);
+        if (!tr || !tr.dataset) return;
+        const idx = Number(tr.dataset.idx);
+        if (!Number.isFinite(idx)) return;
+        const url = links && links[idx];
+        if (url) setViewer(url);
+      }});
+
+      // Initialize preview to the most recent row with a map
+      for (const r of rows) {{
+        if (r.html) {{ setViewer(r.html); break; }}
       }}
     </script>
   </body>
