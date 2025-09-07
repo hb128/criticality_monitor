@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+import os
+import concurrent.futures
 from pathlib import Path
 from typing import Iterable
 
@@ -118,6 +120,7 @@ def parse_args():
     p.add_argument("--step-penalty", type=float, default=5.0, help="meters per edge")
     p.add_argument("--min-edge-cost", type=float, default=15.0, help="meters floor per edge")
     p.add_argument("--bounds-expand", type=float, default=2.0)
+    p.add_argument("--workers", type=int, default=1, help="Number of parallel workers (default: 1). Use 0 or 1 for serial execution.")
     return p.parse_args()
 
 def main():
@@ -146,28 +149,68 @@ def main():
         sys.exit(1)
 
     rows = []
-    for i, f in enumerate(files, 1):
-        try:
-            out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
-            print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
-            metrics = build_map_and_metrics(f, cfg, out_html)
-            rows.append(metrics)
-        except Exception as e:
-            print(f"ERROR processing {f}: {e}", file=sys.stderr)
-            rows.append({
-                "file": str(f),
-                "html": "",
-                "n_points": 0,
-                "n_bbox": 0,
-                "n_filtered": 0,
-                "largest_comp_size": 0,
-                "connection_radius_m": 0.0,
-                "length_m": 0.0,
-                "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
-                "L0_m": cfg.L0,
-                "penalty_factor": cfg.penalty_factor,
-                "error": str(e),
-            })
+    workers = a.workers if hasattr(a, 'workers') else 1
+    # Serial path (workers <= 1)
+    if not workers or workers <= 1:
+        for i, f in enumerate(files, 1):
+            try:
+                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
+                print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
+                metrics = build_map_and_metrics(f, cfg, out_html)
+                rows.append(metrics)
+            except Exception as e:
+                print(f"ERROR processing {f}: {e}", file=sys.stderr)
+                rows.append({
+                    "file": str(f),
+                    "html": "",
+                    "n_points": 0,
+                    "n_bbox": 0,
+                    "n_filtered": 0,
+                    "largest_comp_size": 0,
+                    "connection_radius_m": 0.0,
+                    "length_m": 0.0,
+                    "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
+                    "L0_m": cfg.L0,
+                    "penalty_factor": cfg.penalty_factor,
+                    "error": str(e),
+                })
+    else:
+        # Parallel path using ProcessPoolExecutor
+        max_workers = workers if workers > 0 else os.cpu_count() or 1
+        print(f"Running with {max_workers} workers")
+        futures = {}
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as ex:
+            for i, f in enumerate(files, 1):
+                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
+                print(f"[submit {i}/{len(files)}] {f.name} -> {out_html.name}")
+                # submit the top-level function; PipelineConfig is dataclass and should be picklable
+                futures[ex.submit(build_map_and_metrics, f, cfg, out_html)] = (i, f, out_html)
+
+            total = len(futures)
+            done = 0
+            for fut in concurrent.futures.as_completed(futures):
+                i, f, out_html = futures[fut]
+                done += 1
+                try:
+                    metrics = fut.result()
+                    print(f"[{done}/{total}] Done {f.name} -> {out_html.name}")
+                    rows.append(metrics)
+                except Exception as e:
+                    print(f"ERROR processing {f}: {e}", file=sys.stderr)
+                    rows.append({
+                        "file": str(f),
+                        "html": "",
+                        "n_points": 0,
+                        "n_bbox": 0,
+                        "n_filtered": 0,
+                        "largest_comp_size": 0,
+                        "connection_radius_m": 0.0,
+                        "length_m": 0.0,
+                        "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
+                        "L0_m": cfg.L0,
+                        "penalty_factor": cfg.penalty_factor,
+                        "error": str(e),
+                    })
 
     # Write CSV
     fieldnames = ["file", "html", "n_points", "n_bbox", "n_filtered", "largest_comp_size",
