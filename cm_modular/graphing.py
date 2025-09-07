@@ -25,10 +25,11 @@ class GraphBuilder:
         Returns
         -------
         (adj, r) : (list, float)
-            Adjacency list and the connection radius used.
+            Tuple of adjacency list and the connection radius used.
         """
         r = float(min(300.0, max(30.0, 1.6 * k_med)))
         n = D.shape[0]
+        # Create the adjacency list: adj[i] will hold neighbors of node i as tuples (j, cost)
         adj: list[list[tuple[int, float]]] = [[] for _ in range(n)]
         for i in range(n):
             for j in range(n):

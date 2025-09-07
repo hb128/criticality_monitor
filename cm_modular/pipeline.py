@@ -44,7 +44,7 @@ class PipelineConfig:
     graph_figsize: tuple[float, float] = (9.0, 6.0)
 
 class Pipeline:
-    """End-to-end pipeline that mirrors the original one-file script, modularized."""
+    """End-to-end pipeline that fits a critical mass and extract its length."""
     def __init__(self, cfg: PipelineConfig | None = None):
         self.cfg = cfg or PipelineConfig()
         self.map_builder = MapBuilder()
