@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
+import json
 import folium
 import numpy as np
 import pandas as pd
@@ -97,7 +98,7 @@ class MapBuilder:
         """
         m.get_root().html.add_child(folium.Element(legend_html))
 
-        # If a route exists, fit bounds tightly around the route and expand by 1.5x.
+        # Compute desired bounds (route-focused when available), then apply without animation
         if path_indices and len(path_indices) >= 2:
             pts = filtered.loc[path_indices, ["lat", "lon"]].to_numpy()
             lat_min_r, lon_min_r = float(pts[:, 0].min()), float(pts[:, 1].min())
@@ -111,14 +112,8 @@ class MapBuilder:
             lat_max2 = lat_c_r + factor * half_lat
             lon_min2 = lon_c_r - factor * half_lon
             lon_max2 = lon_c_r + factor * half_lon
-            # avoid degenerate bounds
-            if lat_max2 - lat_min2 < 1e-6:
-                lat_min2 -= 1e-4; lat_max2 += 1e-4
-            if lon_max2 - lon_min2 < 1e-6:
-                lon_min2 -= 1e-4; lon_max2 += 1e-4
-            m.fit_bounds([[lat_min2, lon_min2], [lat_max2, lon_max2]])
         else:
-            # fallback: keep previous behavior (expand overall bbox by bounds_expand)
+            # fallback: expand overall bbox by bounds_expand
             lat_c = (lat_min + lat_max) / 2.0
             lon_c = (lon_min + lon_max) / 2.0
             half_lat = (lat_max - lat_min) / 2.0
@@ -127,6 +122,43 @@ class MapBuilder:
             lat_max2 = lat_c + bounds_expand * half_lat
             lon_min2 = lon_c - bounds_expand * half_lon
             lon_max2 = lon_c + bounds_expand * half_lon
-            m.fit_bounds([[lat_min2, lon_min2], [lat_max2, lon_max2]])
+
+        # avoid degenerate bounds
+        if lat_max2 - lat_min2 < 1e-6:
+            lat_min2 -= 1e-4; lat_max2 += 1e-4
+        if lon_max2 - lon_min2 < 1e-6:
+            lon_min2 -= 1e-4; lon_max2 += 1e-4
+
+        # Apply bounds without animation using inline JS, after map is ready and sized
+        bounds = [[float(lat_min2), float(lon_min2)], [float(lat_max2), float(lon_max2)]]
+        js = f"""
+        <script>
+        (function() {{
+            var mapName = "{m.get_name()}";
+            var bounds = {json.dumps(bounds)};
+            var attempts = 0;
+            function applyBoundsIfReady() {{
+                var map = window[mapName];
+                if (!map) {{
+                    if (attempts++ < 40) return setTimeout(applyBoundsIfReady, 50);
+                    return;
+                }}
+                var doFit = function() {{
+                    try {{
+                        map.options.zoomAnimation = false;
+                        map.options.fadeAnimation = false;
+                        if (map.invalidateSize) map.invalidateSize(true);
+                        map.fitBounds(bounds, {{ animate: false, padding: [8,8] }});
+                    }} catch (e) {{}}
+                }};
+                if (map.whenReady) {{ map.whenReady(function() {{ setTimeout(doFit, 0); }}); }}
+                else {{ setTimeout(doFit, 0); }}
+            }}
+            if (document.readyState === 'complete') {{ applyBoundsIfReady(); }}
+            else {{ window.addEventListener('load', applyBoundsIfReady, {{ once: true }}); }}
+        }})();
+        </script>
+        """
+        m.get_root().html.add_child(folium.Element(js))
 
         return m
