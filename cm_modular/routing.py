@@ -37,7 +37,19 @@ class AngleBiasedRouter:
         return abs(da)
 
     def dijkstra(self, adj: list[list[tuple[int, float]]], src: int):
-        """Run expanded-state Dijkstra from a source node.
+        """
+        Run expanded-state Dijkstra from a source node.
+        This implementation expands the state space to include the previous node, allowing for
+        penalties based on step cost and turn angle. It uses a priority queue for efficient
+        shortest path computation.
+
+        Parameters
+        ----------
+        adj : list[list[tuple[int, float]]]
+            Adjacency list representing the graph. Each element adj[u] is a list of (v, w) tuples,
+            where v is the neighbor node index and w is the edge cost from node u to node v.
+        src : int
+            Index of the source node from which to start the search.
 
         Returns
         -------
@@ -77,27 +89,27 @@ class AngleBiasedRouter:
                         best_dist_to[v] = nd
                         best_last_prev[v] = u
         return best_dist_to, prev_state, best_last_prev
-
+    
+    @staticmethod
     def dijkstra_plain(adj: list[list[tuple[int, float]]], src: int):
-        """Standard Dijkstra on adjacency `adj` using the provided edge weights.
+        """
+        Standard Dijkstra on adjacency `adj` using the provided edge weights.
 
         This ignores turn/step/long-edge penalties entirely. Use it when you want
         distances under *pure* edge costs (e.g., geometric meters), typically by
         passing an adjacency where each edge weight is D_base[i, j].
 
-        Parameters
-        ----------
-        adj : list[list[tuple[int, float]]]
-            Adjacency list where `adj[u]` is a list of `(v, w)` pairs.
-        src : int
-            Source node index.
+        Parameters:
+            adj : list[list[tuple[int, float]]]
+                Adjacency list where `adj[u]` is a list of `(v, w)` pairs.
+            src : int
+                Source node index.
 
-        Returns
-        -------
-        dist : list[float]
-            Best-known cost from `src` to each node.
-        prev : list[int]
-            Backpointer (parent) for path reconstruction under this metric.
+        Returns:
+            dist : list[float]
+                Best-known cost from `src` to each node.
+            prev : list[int]
+                Backpointer (parent) for path reconstruction under this metric.
         """
         import heapq
         INF = 1e30
@@ -119,12 +131,25 @@ class AngleBiasedRouter:
                     heapq.heappush(pq, (nd, v))
         return dist, prev
 
-
+    @staticmethod
     def as_geometric_adjacency(adj: list[list[tuple[int, float]]], D_base) -> list[list[tuple[int, float]]]:
-        """Return a copy of `adj` with each weight replaced by the geometric distance `D_base[i, j]`.
-
+        """
+        Converts an adjacency list with arbitrary weights to one with geometric distances.
         Useful to run `dijkstra_plain` on the same connectivity but with *true* (unpenalized)
         edge costs.
+
+        Args:
+            adj (list[list[tuple[int, float]]]): 
+                Adjacency list representation of a graph, where each element adj[i] is a list of tuples (j, w),
+                representing an edge from node i to node j with weight w.
+            D_base: 
+                A 2D array-like structure (e.g., numpy.ndarray) where D_base[i, j] gives the geometric distance 
+                between nodes i and j.
+
+        Returns:
+            list[list[tuple[int, float]]]: 
+                A new adjacency list with the same connectivity as `adj`, but each edge weight is replaced by 
+                the geometric distance from `D_base`.
         """
         G = []
         for i, nbrs in enumerate(adj):
