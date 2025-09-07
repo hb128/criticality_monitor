@@ -30,6 +30,7 @@ def main():
         L0=a.L0, penalty_factor=a.penalty_factor,
         angle_bias_m_per_rad=a.angle_bias, step_penalty_m=a.step_penalty, min_edge_cost_m=a.min_edge_cost,
         bounds_expand=a.bounds_expand,
+        plot_graph=True, graph_cost_mode='adj', graph_out=None,
     )
     pipe = Pipeline(cfg)
     m, out = pipe.run(a.file, a.out)

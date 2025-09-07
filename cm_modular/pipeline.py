@@ -11,6 +11,7 @@ from .graphing import GraphBuilder
 from .routing import AngleBiasedRouter
 from .clustering import Clusterer
 from .mapping import MapBuilder
+from .plotting import GraphPlotter
 
 @dataclass
 class PipelineConfig:
@@ -35,6 +36,12 @@ class PipelineConfig:
 
     # Map
     bounds_expand: float = 2.0
+
+    # Graph plot (new)
+    plot_graph: bool = False
+    graph_cost_mode: str = "adj"  # "adj" or "geom"
+    graph_out: str | None = None
+    graph_figsize: tuple[float, float] = (9.0, 6.0)
 
 class Pipeline:
     """End-to-end pipeline that mirrors the original one-file script, modularized."""
@@ -112,6 +119,25 @@ class Pipeline:
                 # 4) True geometric length for display
                 diameter_km = router.path_true_length_m(D_f, path_indices) / 1000.0
 
+
+        # Optional static graph plot (lon/lat positions)
+        if self.cfg.plot_graph:
+            # pick default output if not provided
+            graph_out = self.cfg.graph_out
+            # if graph_out is None:
+            #     base = Path(file_path).with_suffix("").name
+            #     graph_out = f"{base}_graph_{self.cfg.graph_cost_mode}.png"
+            GraphPlotter.plot_graph(
+                filtered=filtered,
+                adj=adj,
+                D_f=D_f,
+                cost_mode=self.cfg.graph_cost_mode,
+                path_indices=path_indices,
+                router=locals().get("router", None),
+                title=f"Graph ({self.cfg.graph_cost_mode} costs)",
+                out=graph_out,
+                figsize=self.cfg.graph_figsize,
+            )
 
         # map
         m = self.map_builder.build(
