@@ -37,17 +37,13 @@ class MapBuilder:
         angle_bias_m_per_rad: float,
         bounds_expand: float = 2.0,
     ) -> folium.Map:
+        # compute overall bbox (fallback)
         lat_min, lat_max = filtered["lat"].min(), filtered["lat"].max()
         lon_min, lon_max = filtered["lon"].min(), filtered["lon"].max()
         lat_c = (lat_min + lat_max) / 2.0
         lon_c = (lon_min + lon_max) / 2.0
-        half_lat = (lat_max - lat_min) / 2.0
-        half_lon = (lon_max - lon_min) / 2.0
-        lat_min2 = lat_c - bounds_expand * half_lat
-        lat_max2 = lat_c + bounds_expand * half_lat
-        lon_min2 = lon_c - bounds_expand * half_lon
-        lon_max2 = lon_c + bounds_expand * half_lon
 
+        # start map centered on overall center (may be re-fit below)
         m = folium.Map(location=[lat_c, lon_c], tiles="OpenStreetMap")
 
         for _, r in filtered.iterrows():
@@ -100,5 +96,37 @@ class MapBuilder:
         </div>
         """
         m.get_root().html.add_child(folium.Element(legend_html))
-        m.fit_bounds([[lat_min2, lon_min2], [lat_max2, lon_max2]])
+
+        # If a route exists, fit bounds tightly around the route and expand by 1.5x.
+        if path_indices and len(path_indices) >= 2:
+            pts = filtered.loc[path_indices, ["lat", "lon"]].to_numpy()
+            lat_min_r, lon_min_r = float(pts[:, 0].min()), float(pts[:, 1].min())
+            lat_max_r, lon_max_r = float(pts[:, 0].max()), float(pts[:, 1].max())
+            lat_c_r = (lat_min_r + lat_max_r) / 2.0
+            lon_c_r = (lon_min_r + lon_max_r) / 2.0
+            half_lat = (lat_max_r - lat_min_r) / 2.0
+            half_lon = (lon_max_r - lon_min_r) / 2.0
+            factor = 1.5
+            lat_min2 = lat_c_r - factor * half_lat
+            lat_max2 = lat_c_r + factor * half_lat
+            lon_min2 = lon_c_r - factor * half_lon
+            lon_max2 = lon_c_r + factor * half_lon
+            # avoid degenerate bounds
+            if lat_max2 - lat_min2 < 1e-6:
+                lat_min2 -= 1e-4; lat_max2 += 1e-4
+            if lon_max2 - lon_min2 < 1e-6:
+                lon_min2 -= 1e-4; lon_max2 += 1e-4
+            m.fit_bounds([[lat_min2, lon_min2], [lat_max2, lon_max2]])
+        else:
+            # fallback: keep previous behavior (expand overall bbox by bounds_expand)
+            lat_c = (lat_min + lat_max) / 2.0
+            lon_c = (lon_min + lon_max) / 2.0
+            half_lat = (lat_max - lat_min) / 2.0
+            half_lon = (lon_max - lon_min) / 2.0
+            lat_min2 = lat_c - bounds_expand * half_lat
+            lat_max2 = lat_c + bounds_expand * half_lat
+            lon_min2 = lon_c - bounds_expand * half_lon
+            lon_max2 = lon_c + bounds_expand * half_lon
+            m.fit_bounds([[lat_min2, lon_min2], [lat_max2, lon_max2]])
+
         return m
