@@ -20,6 +20,7 @@ def parse_args():
     p.add_argument("--step-penalty", type=float, default=5.0, help="meters per edge")
     p.add_argument("--min-edge-cost", type=float, default=15.0, help="meters floor per edge")
     p.add_argument("--bounds-expand", type=float, default=2.0)
+    p.add_argument("--plot-graph", action="store_true", help="Enable graph output (plot/draw graph).")
     return p.parse_args()
 
 def main():
@@ -30,7 +31,7 @@ def main():
         L0=a.L0, penalty_factor=a.penalty_factor,
         angle_bias_m_per_rad=a.angle_bias, step_penalty_m=a.step_penalty, min_edge_cost_m=a.min_edge_cost,
         bounds_expand=a.bounds_expand,
-        plot_graph=True, graph_cost_mode='adj', graph_out=None,
+        plot_graph=a.plot_graph, graph_cost_mode='adj', graph_out=None,
     )
     pipe = Pipeline(cfg)
     m, out = pipe.run(a.file, a.out)
