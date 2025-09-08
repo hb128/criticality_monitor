@@ -12,7 +12,7 @@ def parse_args():
     p.add_argument("--lat-max", type=float, default=53.8)
     p.add_argument("--lon-min", type=float, default=9.6)
     p.add_argument("--lon-max", type=float, default=10.35)
-    p.add_argument("--k", type=int, default=4)
+    p.add_argument("--k", type=int, default=6)
     p.add_argument("--n-sigmas", type=float, default=3.0)
     p.add_argument("--L0", type=float, default=50.0)
     p.add_argument("--penalty-factor", type=float, default=3.0)
