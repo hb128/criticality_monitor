@@ -8,6 +8,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="Build cluster map with angle-biased path.")
     p.add_argument("file", type=str, help="Path to JSON with 'locations'.")
     p.add_argument("--out", type=str, default=None, help="Output HTML path.")
+    p.add_argument("--city", type=str, default=None, help="City preset name (overrides bbox if supplied).")
     p.add_argument("--lat-min", type=float, default=53.3)
     p.add_argument("--lat-max", type=float, default=53.8)
     p.add_argument("--lon-min", type=float, default=9.6)
@@ -26,6 +27,7 @@ def parse_args():
 def main():
     a = parse_args()
     cfg = PipelineConfig(
+    city=a.city,
         lat_min=a.lat_min, lat_max=a.lat_max, lon_min=a.lon_min, lon_max=a.lon_max,
         k=a.k, n_sigmas=a.n_sigmas,
         L0=a.L0, penalty_factor=a.penalty_factor,

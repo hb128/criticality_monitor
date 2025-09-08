@@ -108,6 +108,7 @@ def parse_args():
     p.add_argument("--csv", type=str, default=None, help="Path to write CSV summary (default: <outdir>/distances.csv)." )
     p.add_argument("--pattern", action="append", default=["*.txt", "*.json"], help="Glob pattern(s) to include (can repeat). Default: *.txt, *.json" )
     # Config overrides
+    p.add_argument("--city", type=str, default=None, help="City preset name (overrides bbox if supplied).")
     p.add_argument("--lat-min", type=float, default=53.3)
     p.add_argument("--lat-max", type=float, default=53.8)
     p.add_argument("--lon-min", type=float, default=9.6)
@@ -136,6 +137,7 @@ def main():
     csv_path = Path(a.csv).expanduser().resolve() if a.csv else (outdir / "distances.csv")
 
     cfg = PipelineConfig(
+    city=a.city,
         lat_min=a.lat_min, lat_max=a.lat_max, lon_min=a.lon_min, lon_max=a.lon_max,
         k=a.k, n_sigmas=a.n_sigmas,
         L0=a.L0, penalty_factor=a.penalty_factor,

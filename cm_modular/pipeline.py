@@ -13,9 +13,23 @@ from .clustering import Clusterer
 from .mapping import MapBuilder
 from .plotting import GraphPlotter
 
+from .cities import CityPresets
+
+
 @dataclass
 class PipelineConfig:
-    # BBox defaults (Hamburg-ish) used in the original script
+    """Configuration for the end‑to‑end pipeline.
+
+    Provide either explicit bbox values or a ``city`` (string) referencing
+    a preset in ``cm_modular.cities.CityPresets``.
+    If ``city`` is supplied it overrides bbox parameters unless you also
+    pass explicit lat_/lon_ values (those win).
+    """
+    # City name (optional). If provided and bbox not explicitly overridden
+    # we fill in from preset during ``__post_init__``.
+    city: str | None = None
+
+    # BBox defaults (Hamburg – same as previous behaviour)
     lat_min: float = 53.3
     lat_max: float = 53.8
     lon_min: float = 9.6
@@ -42,6 +56,18 @@ class PipelineConfig:
     graph_cost_mode: str = "adj"  # "adj" or "geom"
     graph_out: str | None = None
     graph_figsize: tuple[float, float] = (9.0, 6.0)
+
+    def __post_init__(self):
+        # Always apply city preset if provided (unconditional override)
+        if self.city:
+            try:
+                preset = CityPresets.get(self.city)
+            except Exception as e:  # noqa: BLE001
+                raise ValueError(str(e)) from e
+            self.lat_min = preset.lat_min
+            self.lat_max = preset.lat_max
+            self.lon_min = preset.lon_min
+            self.lon_max = preset.lon_max
 
 class Pipeline:
     """End-to-end pipeline that fits a critical mass and extract its length."""
@@ -158,9 +184,21 @@ class Pipeline:
         )
 
         if out_html is None:
-            out_html = Path(file_path).with_suffix("").name + "_clusters_with_path_angle.html"
+            out_html = Path(file_path).with_suffix("").name + ".html"
             out_html = Path(out_html)
         else:
             out_html = Path(out_html)
+            base_stem = Path(file_path).with_suffix("").name
+            default_filename = base_stem + ".html"
+            # Case 1: out_html points to an existing directory -> append default filename
+            if out_html.exists() and out_html.is_dir():
+                out_html = out_html / default_filename
+            # Case 2: path has no suffix (no extension) and does not exist -> treat as directory
+            elif out_html.suffix == "":
+                out_html.mkdir(parents=True, exist_ok=True)
+                out_html = out_html / default_filename
+            else:
+                # Ensure parent directory exists for explicit file path
+                out_html.parent.mkdir(parents=True, exist_ok=True)
         m.save(str(out_html))
         return m, out_html
