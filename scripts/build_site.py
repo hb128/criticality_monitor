@@ -105,12 +105,14 @@ def build_site(
                     dest = maps_dir / dest_name
                     if not dest.exists():
                         shutil.copy2(src, dest)
-                    rel_links.append(f"{maps_subdir}/{dest_name}")
+                    rel_links.append(str(dest.relative_to(outdir)).replace("\\", "/"))
                 except Exception:
                     # Fallback to original path normalized for web
-                    rel_links.append(str(src).replace("\\", "/"))
+                    link = str(src.relative_to(outdir)).replace("\\", "/") if src.exists() else str(src).replace("\\", "/")
+                    rel_links.append(link)
             else:
-                rel_links.append(str(src).replace("\\", "/"))
+                  link = str(src.relative_to(outdir)).replace("\\", "/") if src.exists() else str(src).replace("\\", "/")
+                  rel_links.append(link)
         else:
             rel_links.append("")
 
