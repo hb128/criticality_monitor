@@ -101,6 +101,126 @@ def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
     }
     return metrics
 
+def run_batch(
+    indir: Path,
+    outdir: Path,
+    patterns: list[str],
+    cfg: PipelineConfig,
+    *,
+    workers: int = 1,
+    csv_path: Path | None = None,
+) -> Path:
+    """Run batch processing of files and write distances CSV.
+
+    Parameters
+    ----------
+    indir : Path
+        Input directory containing raw location files.
+    outdir : Path
+        Directory where individual map HTML files will be written.
+    patterns : list[str]
+        Glob patterns to include (non-recursive) e.g. ["*.txt", "*.json"].
+    cfg : PipelineConfig
+        Pipeline configuration.
+    workers : int, default 1
+        Parallel workers (<=1 means serial).
+    csv_path : Path | None
+        Explicit CSV output path. If None, uses outdir / "distances.csv".
+
+    Returns
+    -------
+    Path
+        Path to written CSV file.
+    """
+    outdir.mkdir(parents=True, exist_ok=True)
+    if csv_path is None:
+        csv_path = outdir / "distances.csv"
+
+    files = sorted(iter_files(indir, patterns))
+    if not files:
+        raise FileNotFoundError(f"No files matched in {indir} with patterns {patterns}")
+
+    rows: list[dict] = []
+    workers_eff = workers if workers and workers > 1 else 1
+
+    if workers_eff == 1:
+        for i, f in enumerate(files, 1):
+            try:
+                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
+                print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
+                metrics = build_map_and_metrics(f, cfg, out_html)
+                rows.append(metrics)
+            except Exception as e:  # noqa: BLE001
+                print(f"ERROR processing {f}: {e}", file=sys.stderr)
+                rows.append({
+                    "file": str(f),
+                    "html": "",
+                    "n_points": 0,
+                    "n_bbox": 0,
+                    "n_filtered": 0,
+                    "largest_comp_size": 0,
+                    "connection_radius_m": 0.0,
+                    "length_m": 0.0,
+                    "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
+                    "L0_m": cfg.L0,
+                    "penalty_factor": cfg.penalty_factor,
+                    "error": str(e),
+                })
+    else:
+        max_workers = workers_eff if workers_eff > 0 else os.cpu_count() or 1
+        print(f"Running with {max_workers} workers")
+        futures: dict[concurrent.futures.Future, tuple[int, Path, Path]] = {}
+        results: dict[int, dict] = {}
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as ex:
+            for i, f in enumerate(files, 1):
+                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
+                print(f"[submit {i}/{len(files)}] {f.name} -> {out_html.name}")
+                futures[ex.submit(build_map_and_metrics, f, cfg, out_html)] = (i, f, out_html)
+            total = len(futures)
+            done = 0
+            for fut in concurrent.futures.as_completed(futures):
+                i, f, out_html = futures[fut]
+                done += 1
+                try:
+                    metrics = fut.result()
+                    print(f"[{done}/{total}] Done {f.name} -> {out_html.name}")
+                    results[i] = metrics
+                except Exception as e:  # noqa: BLE001
+                    print(f"ERROR processing {f}: {e}", file=sys.stderr)
+                    results[i] = {
+                        "file": str(f),
+                        "html": "",
+                        "n_points": 0,
+                        "n_bbox": 0,
+                        "n_filtered": 0,
+                        "largest_comp_size": 0,
+                        "connection_radius_m": 0.0,
+                        "length_m": 0.0,
+                        "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
+                        "L0_m": cfg.L0,
+                        "penalty_factor": cfg.penalty_factor,
+                        "error": str(e),
+                    }
+        for i in range(1, len(files) + 1):
+            rows.append(results[i])
+
+    # Write CSV
+    fieldnames = [
+        "file", "html", "n_points", "n_bbox", "n_filtered", "largest_comp_size",
+        "connection_radius_m", "length_m", "angle_bias_m_per_rad", "L0_m", "penalty_factor", "error"
+    ]
+    for r in rows:
+        r.setdefault("error", "")
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+
+    print(f"Wrote CSV: {csv_path}")
+    print(f"Wrote {len([r for r in rows if not r['error']])} HTML maps to: {outdir}")
+    return csv_path
+
 def parse_args():
     p = argparse.ArgumentParser(description="Batch-build cluster maps and export distances CSV.")
     p.add_argument("indir", type=str, help="Directory containing input files (JSON-within-.txt is fine)." )
@@ -145,94 +265,11 @@ def main():
         bounds_expand=a.bounds_expand,
     )
 
-    files = sorted(iter_files(indir, a.pattern))
-    if not files:
-        print(f"No files matched in {indir} with patterns {a.pattern}", file=sys.stderr)
+    try:
+        run_batch(indir, outdir, a.pattern, cfg, workers=a.workers, csv_path=csv_path)
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
         sys.exit(1)
-
-    rows = []
-    workers = a.workers if hasattr(a, 'workers') else 1
-    # Serial path (workers <= 1)
-    if not workers or workers <= 1:
-        for i, f in enumerate(files, 1):
-            try:
-                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
-                print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
-                metrics = build_map_and_metrics(f, cfg, out_html)
-                rows.append(metrics)
-            except Exception as e:
-                print(f"ERROR processing {f}: {e}", file=sys.stderr)
-                rows.append({
-                    "file": str(f),
-                    "html": "",
-                    "n_points": 0,
-                    "n_bbox": 0,
-                    "n_filtered": 0,
-                    "largest_comp_size": 0,
-                    "connection_radius_m": 0.0,
-                    "length_m": 0.0,
-                    "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
-                    "L0_m": cfg.L0,
-                    "penalty_factor": cfg.penalty_factor,
-                    "error": str(e),
-                })
-    else:
-        # Parallel path using ProcessPoolExecutor
-        max_workers = workers if workers > 0 else os.cpu_count() or 1
-        print(f"Running with {max_workers} workers")
-        futures = {}
-        results = {}  # Store results with their original index to maintain order
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as ex:
-            for i, f in enumerate(files, 1):
-                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
-                print(f"[submit {i}/{len(files)}] {f.name} -> {out_html.name}")
-                # submit the top-level function; PipelineConfig is dataclass and should be picklable
-                futures[ex.submit(build_map_and_metrics, f, cfg, out_html)] = (i, f, out_html)
-
-            total = len(futures)
-            done = 0
-            for fut in concurrent.futures.as_completed(futures):
-                i, f, out_html = futures[fut]
-                done += 1
-                try:
-                    metrics = fut.result()
-                    print(f"[{done}/{total}] Done {f.name} -> {out_html.name}")
-                    results[i] = metrics
-                except Exception as e:
-                    print(f"ERROR processing {f}: {e}", file=sys.stderr)
-                    results[i] = {
-                        "file": str(f),
-                        "html": "",
-                        "n_points": 0,
-                        "n_bbox": 0,
-                        "n_filtered": 0,
-                        "largest_comp_size": 0,
-                        "connection_radius_m": 0.0,
-                        "length_m": 0.0,
-                        "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
-                        "L0_m": cfg.L0,
-                        "penalty_factor": cfg.penalty_factor,
-                        "error": str(e),
-                    }
-        
-        # Add results to rows in original file order
-        for i in range(1, len(files) + 1):
-            rows.append(results[i])
-
-    # Write CSV
-    fieldnames = ["file", "html", "n_points", "n_bbox", "n_filtered", "largest_comp_size",
-                  "connection_radius_m", "length_m", "angle_bias_m_per_rad", "L0_m", "penalty_factor", "error"]
-    # ensure 'error' column exists even on successful rows
-    for r in rows:
-        r.setdefault("error", "")
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        for r in rows:
-            w.writerow(r)
-
-    print(f"Wrote CSV: {csv_path}")
-    print(f"Wrote {len([r for r in rows if not r['error']])} HTML maps to: {outdir}")
 
 if __name__ == "__main__":
     main()
