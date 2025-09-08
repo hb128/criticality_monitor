@@ -179,6 +179,7 @@ def main():
         max_workers = workers if workers > 0 else os.cpu_count() or 1
         print(f"Running with {max_workers} workers")
         futures = {}
+        results = {}  # Store results with their original index to maintain order
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as ex:
             for i, f in enumerate(files, 1):
                 out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
@@ -194,10 +195,10 @@ def main():
                 try:
                     metrics = fut.result()
                     print(f"[{done}/{total}] Done {f.name} -> {out_html.name}")
-                    rows.append(metrics)
+                    results[i] = metrics
                 except Exception as e:
                     print(f"ERROR processing {f}: {e}", file=sys.stderr)
-                    rows.append({
+                    results[i] = {
                         "file": str(f),
                         "html": "",
                         "n_points": 0,
@@ -210,7 +211,11 @@ def main():
                         "L0_m": cfg.L0,
                         "penalty_factor": cfg.penalty_factor,
                         "error": str(e),
-                    })
+                    }
+        
+        # Add results to rows in original file order
+        for i in range(1, len(files) + 1):
+            rows.append(results[i])
 
     # Write CSV
     fieldnames = ["file", "html", "n_points", "n_bbox", "n_filtered", "largest_comp_size",
