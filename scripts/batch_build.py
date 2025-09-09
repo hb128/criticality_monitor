@@ -146,7 +146,7 @@ def run_batch(
     if workers_eff == 1:
         for i, f in enumerate(files, 1):
             try:
-                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
+                out_html = outdir / (f.stem + ".html")
                 print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
                 metrics = build_map_and_metrics(f, cfg, out_html)
                 rows.append(metrics)
@@ -173,7 +173,7 @@ def run_batch(
         results: dict[int, dict] = {}
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as ex:
             for i, f in enumerate(files, 1):
-                out_html = outdir / (f.stem + "_clusters_with_path_angle.html")
+                out_html = outdir / (f.stem + ".html")
                 print(f"[submit {i}/{len(files)}] {f.name} -> {out_html.name}")
                 futures[ex.submit(build_map_and_metrics, f, cfg, out_html)] = (i, f, out_html)
             total = len(futures)
