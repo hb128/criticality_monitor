@@ -367,20 +367,20 @@ def render_enhanced_html(
                     <h2>📊 Statistics</h2>
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-card-value" id="total-distance">{current_stats['total_distance']:.0f}m</div>
-                            <div class="stat-card-label">Total Distance</div>
+                            <div class="stat-card-value" id="total-distance">{current_stats['latest_length']:.0f}m</div>
+                            <div class="stat-card-label">Current Length</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-card-value" id="max-distance">0m</div>
+                            <div class="stat-card-value" id="number-points">{current_stats['n_filtered']:d}</div>
+                            <div class="stat-card-label">Mass Trackers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-value">{current_stats['max_length']:.0f}m</div>
                             <div class="stat-card-label">Max Length</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-card-value">{current_stats['total_rides']}</div>
-                            <div class="stat-card-label">Total Rides</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-value">{current_stats['avg_length']:.0f}m</div>
-                            <div class="stat-card-label">Avg Length</div>
+                            <div class="stat-card-value">{current_stats['latest_date']}</div>
+                            <div class="stat-card-label">Latest datapoint</div>
                         </div>
                     </div>
                 </div>

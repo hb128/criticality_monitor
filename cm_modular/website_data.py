@@ -86,12 +86,11 @@ def prepare_current_stats(df: pd.DataFrame) -> dict:
             latest_date_str = 'Unknown'
     
     return {
-        'total_rides': len(df),
+        'n_filtered': int(latest.get('n_filtered')),
         'latest_length': float(latest.get('length_m', 0)) if pd.notna(latest.get('length_m')) else 0,
         'latest_date': latest_date_str,
-        'avg_length': float(df['length_m'].mean()) if 'length_m' in df.columns and not df['length_m'].isna().all() else 0,
-        'total_distance': float(df['length_m'].sum()) if 'length_m' in df.columns else 0,
-    }
+        'max_length': float(df['length_m'].max())
+   }
 
 
 def prepare_plot_data(df: pd.DataFrame, rel_links: list[str]) -> dict:
