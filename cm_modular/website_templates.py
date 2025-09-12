@@ -344,27 +344,12 @@ def render_enhanced_html(
             <div class="content-grid">
                 <!-- Top Left: Chart Section -->
                 <div class="chart-section grid-item">
-                    <h2>📈 Distance Over Time</h2>
                     <div id="chart"></div>
                 </div>
 
-                <!-- Top Right: Leaderboard -->
-                <div class="leaderboard grid-item">
-                    <h2>🏆 Longest Routes</h2>
-                    <div id="leaderboard-list"></div>
-                </div>
                 
-                <!-- Bottom Left: Map Section -->
-                <div class="map-section grid-item">
-                    <h2>🗺️ Latest Route</h2>
-                    <div class="map-container">
-                        <iframe id="latest-map" src="" title="Latest Critical Mass Route"></iframe>
-                    </div>
-                </div>
-                
-                <!-- Bottom Right: Stats Section -->
+                <!-- Top Right: Stats Section -->
                 <div class="stats-section grid-item">
-                    <h2>📊 Statistics</h2>
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-card-value" id="total-distance">{current_stats['latest_length']:.0f}m</div>
@@ -384,6 +369,21 @@ def render_enhanced_html(
                         </div>
                     </div>
                 </div>
+
+                <!-- Bottom Left: Map Section -->
+                <div class="map-section grid-item">
+                    <h2>Latest Route</h2>
+                    <div class="map-container">
+                        <iframe id="latest-map" src="" title="Latest Critical Mass Route"></iframe>
+                    </div>
+                </div>
+                
+                <!-- Bottom Right: Leaderboard -->
+                <div class="leaderboard grid-item">
+                    <h2>Leaderboard</h2>
+                    <div id="leaderboard-list"></div>
+                </div>
+                
             </div>
         </section>
     </div>
