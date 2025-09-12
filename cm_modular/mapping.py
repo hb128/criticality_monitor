@@ -2,9 +2,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 import json
+from datetime import datetime
 import folium
 import numpy as np
 import pandas as pd
+import pytz
 
 @dataclass
 class MapStyle:
@@ -76,27 +78,43 @@ class MapBuilder:
                 weight=3,
                 color=self.style.path_color,
                 opacity=0.9,
-                tooltip=f"Angle-biased diameter ~{length_m:.2f} km (bias={angle_bias_m_per_rad} m/rad)",
             ).add_to(m)
-            if start_idx is not None and end_idx is not None:
-                s_lat = filtered.loc[start_idx, "lat"]; s_lon = filtered.loc[start_idx, "lon"]
-                e_lat = filtered.loc[end_idx, "lat"];   e_lon = filtered.loc[end_idx, "lon"]
-                folium.Marker([s_lat, s_lon], tooltip="Start", icon=folium.Icon(color="green", icon="play")).add_to(m)
-                folium.Marker([e_lat, e_lon], tooltip="End", icon=folium.Icon(color="red", icon="stop")).add_to(m)
+            # if start_idx is not None and end_idx is not None:
+            #     s_lat = filtered.loc[start_idx, "lat"]; s_lon = filtered.loc[start_idx, "lon"]
+            #     e_lat = filtered.loc[end_idx, "lat"];   e_lon = filtered.loc[end_idx, "lon"]
+            #     # folium.Marker([s_lat, s_lon], tooltip="Start", icon=folium.Icon(color="green", icon="play")).add_to(m)
+                # folium.Marker([e_lat, e_lon], tooltip="End", icon=folium.Icon(color="red", icon="stop")).add_to(m)
+# 
+        # largest_size = cluster_sizes[order[0]] if order else 0
+        # legend_html = f"""
+        # <div style="position: fixed; bottom: 20px; left: 20px; z-index: 9999;
+        #             background: white; padding: 10px 12px; border: 1px solid #ccc;
+        #             border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size:12px;">
+        #   <div><span style="display:inline-block;width:10px;height:10px;background:{self.style.palette[0]};border:1px solid #333;margin-right:6px;"></span>largest cluster ({largest_size} pts)</div>
+        #   <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>length path ≈ {length_m:.0f} m</div>
+        #   <div><span style="display:inline-block;width:10px;height:10px;background:#7f8c8d;border:1px solid #333;margin-right:6px;"></span>outliers</div>
+        # </div>
+        # """
+        # m.get_root().html.add_child(folium.Element(legend_html))
 
-        largest_size = cluster_sizes[order[0]] if order else 0
-        legend_html = f"""
-        <div style="position: fixed; bottom: 20px; left: 20px; z-index: 9999;
-                    background: white; padding: 10px 12px; border: 1px solid #ccc;
-                    border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size:12px;">
-          <div style="font-weight:600; margin-bottom:6px;">Clusters & Angle-biased Path</div>
-          <div><span style="display:inline-block;width:10px;height:10px;background:{self.style.palette[0]};border:1px solid #333;margin-right:6px;"></span>largest cluster ({largest_size} pts)</div>
-          <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>length path ≈ {length_m:.0f} m</div>
-          <div>turn bias: {angle_bias_m_per_rad} m per rad</div>
-          <div><span style="display:inline-block;width:10px;height:10px;background:#7f8c8d;border:1px solid #333;margin-right:6px;"></span>outliers</div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html))
+        berlin = pytz.timezone("Europe/Berlin")
+        latest_unix = filtered['timestamp'].max()
+        latest_timestamp = datetime.fromtimestamp(latest_unix, tz=berlin)
+        headline = f"Critical Mass Hamburg"
+        length_string = f"{length_m:.0f} m"
+        subtitle = f"{latest_timestamp.strftime('%d.%m.%Y - %H:%M:%S')}"
+        header_html = f"""
+        <div style="position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+            z-index: 99999; background: rgba(255,255,255,0.94); padding: 10px 16px;
+            border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif; text-align:center;
+            width: 80%; max-width: 1100px; box-sizing: border-box;">
+            <div style="font-weight:700; font-size:18px; color:#2c3e50; margin-bottom:4px;">{headline}</div>
+            <div style="font-size:35px; color:#34495e;"><span style="font-weight:700">{length_string}</span></div>
+            <div style="font-size:12px; color:#34495e;"><span style="font-weight:700">{subtitle}</span></div>
+            </div>
+            """
+        m.get_root().html.add_child(folium.Element(header_html))
 
         # Compute desired bounds (route-focused when available), then apply without animation
         if path_indices and len(path_indices) >= 2:
@@ -107,7 +125,7 @@ class MapBuilder:
             lon_c_r = (lon_min_r + lon_max_r) / 2.0
             half_lat = (lat_max_r - lat_min_r) / 2.0
             half_lon = (lon_max_r - lon_min_r) / 2.0
-            factor = 1.5
+            factor = 1.2
             lat_min2 = lat_c_r - factor * half_lat
             lat_max2 = lat_c_r + factor * half_lat
             lon_min2 = lon_c_r - factor * half_lon
@@ -160,5 +178,35 @@ class MapBuilder:
         </script>
         """
         m.get_root().html.add_child(folium.Element(js))
-
+        # Add a small live-reload script (polls HEAD for Last-Modified/ETag, falls back to body hash)
+        live_reload = """
+        <script>
+        (function(){
+            const interval = 500;
+            let lastToken = null;
+            async function check(){
+                try{
+                    const head = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+                    const lm = head.headers.get('Last-Modified');
+                    const et = head.headers.get('ETag');
+                    const token = lm || et;
+                    if(token){
+                        if(lastToken && token !== lastToken) return location.reload(true);
+                        lastToken = token;
+                        return setTimeout(check, interval);
+                    }
+                    const resp = await fetch(window.location.href, { cache: 'no-store' });
+                    const text = await resp.text();
+                    const hash = btoa(unescape(encodeURIComponent(text))).slice(0,32);
+                    if(lastToken && hash !== lastToken) return location.reload(true);
+                    lastToken = hash;
+                }catch(e){ /* ignore */ }
+                setTimeout(check, interval);
+            }
+            if(document.readyState === 'complete') setTimeout(check, interval);
+            else window.addEventListener('load', () => setTimeout(check, interval), { once: true });
+        })();
+        </script>
+        """
+        m.get_root().html.add_child(folium.Element(live_reload))
         return m

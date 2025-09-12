@@ -109,7 +109,7 @@ class Pipeline:
         filtered = filtered.copy()
         filtered["cluster"] = cluster_id
 
-    # diameter path on largest component using geometric endpoint selection
+        # diameter path on largest component using geometric endpoint selection
         path_indices: list[int] = []
         start_idx = end_idx = None
         length_m = 0.0
@@ -220,7 +220,7 @@ class Pipeline:
             end_idx=end_idx,
             length_m=length_m,
             angle_bias_m_per_rad=self.cfg.angle_bias_m_per_rad,
-            bounds_expand=self.cfg.bounds_expand,
+            bounds_expand=self.cfg.bounds_expand
         )
 
         if out_html is None:

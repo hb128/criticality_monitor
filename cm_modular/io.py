@@ -28,8 +28,9 @@ class DataLoader:
             data = json.load(f)
         rows = []
         for _id, o in (data.get("locations", {}) or {}).items():
+            timestamp = o.get("timestamp")
             lat = o.get("latitude"); lon = o.get("longitude")
             if lat is None or lon is None:
                 continue
-            rows.append((_id, float(lat)/1e6, float(lon)/1e6))
-        return pd.DataFrame(rows, columns=["id", "lat", "lon"])
+            rows.append((_id, float(lat)/1e6, float(lon)/1e6, timestamp))
+        return pd.DataFrame(rows, columns=["id", "lat", "lon", "timestamp"])
