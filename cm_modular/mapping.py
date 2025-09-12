@@ -97,24 +97,18 @@ class MapBuilder:
         # """
         # m.get_root().html.add_child(folium.Element(legend_html))
 
+        # Header/title information will be handled by the website wrapper
+        # Keep this data available for the website to use
         berlin = pytz.timezone("Europe/Berlin")
         latest_unix = filtered['timestamp'].max()
         latest_timestamp = datetime.fromtimestamp(latest_unix, tz=berlin)
-        headline = f"Critical Mass Hamburg"
-        length_string = f"{length_m:.0f} m"
-        subtitle = f"{latest_timestamp.strftime('%d.%m.%Y - %H:%M:%S')}"
-        header_html = f"""
-        <div style="position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
-            z-index: 99999; background: rgba(255,255,255,0.94); padding: 10px 16px;
-            border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif; text-align:center;
-            width: 80%; max-width: 1100px; box-sizing: border-box;">
-            <div style="font-weight:700; font-size:18px; color:#2c3e50; margin-bottom:4px;">{headline}</div>
-            <div style="font-size:35px; color:#34495e;"><span style="font-weight:700">{length_string}</span></div>
-            <div style="font-size:12px; color:#34495e;"><span style="font-weight:700">{subtitle}</span></div>
-            </div>
-            """
-        m.get_root().html.add_child(folium.Element(header_html))
+        
+        # # Store metadata for the website to access
+        # m._critical_mass_metadata = {
+        #     'length_m': length_m,
+        #     'timestamp': latest_timestamp,
+        #     'city': 'Hamburg'
+        # }
 
         # Compute desired bounds (route-focused when available), then apply without animation
         if path_indices and len(path_indices) >= 2:
