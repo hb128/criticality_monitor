@@ -36,28 +36,29 @@ def render_enhanced_html(
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
             line-height: 1.6; 
             color: #2c3e50;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f8f9fa;
             min-height: 100vh;
         }}
         
         .container {{ 
             max-width: 1200px; 
             margin: 0 auto; 
-            padding: 0 20px;
+            padding: 0 15px;
         }}
         
         /* Header */
         .hero {{ 
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            padding: 20px 0;
+            padding: 10px 0;
             text-align: center;
-            border-radius: 0 0 20px 20px;
-            margin-bottom: 20px;
+            border-radius: 0 0 15px 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }}
         
         .hero h1 {{ 
-            font-size: 2rem; 
+            font-size: 1.8rem; 
             font-weight: 700; 
             color: #2c3e50;
             margin-bottom: 0;
@@ -97,24 +98,25 @@ def render_enhanced_html(
         .main-content {{ 
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }}
         
         /* 2x2 Grid Layout for iPad Landscape */
         .content-grid {{ 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            grid-template-rows: 35vh 35vh;
-            gap: 15px; 
-            min-height: 70vh; /* Reduced for iPad 3 */
+            grid-template-rows: 42vh 42vh;
+            gap: 10px; 
+            min-height: 84vh; /* Stretch to fill more vertical space */
         }}
         
         .grid-item {{
             background: rgba(248, 249, 250, 0.8);
-            border-radius: 15px;
-            padding: 15px;
+            border-radius: 12px;
+            padding: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden; /* Prevent content from spilling out */
             display: flex;
@@ -127,16 +129,16 @@ def render_enhanced_html(
         }}
         
         .chart-section h2 {{ 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             color: #2c3e50;
-            font-size: 1.1rem;
+            font-size: 1.0rem;
         }}
         
         #chart {{ 
             width: 100%; 
             height: 100%;
-            min-height: 200px;
-            border-radius: 10px;
+            min-height: 220px;
+            border-radius: 8px;
             flex: 1; /* Take remaining space */
         }}
         
@@ -146,9 +148,9 @@ def render_enhanced_html(
         }}
         
         .leaderboard h2 {{ 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             color: #2c3e50;
-            font-size: 1.1rem;
+            font-size: 1.0rem;
             flex-shrink: 0; /* Don't shrink the header */
         }}
         
@@ -199,19 +201,19 @@ def render_enhanced_html(
         }}
         
         .map-section h2 {{ 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             color: #2c3e50;
-            font-size: 1.1rem;
+            font-size: 1.0rem;
             flex-shrink: 0; /* Don't shrink the header */
         }}
         
         .map-container {{ 
             width: 100%; 
             flex: 1; /* Take all remaining space */
-            border-radius: 10px; 
+            border-radius: 8px; 
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            min-height: 180px;
+            min-height: 200px;
         }}
         
         #latest-map {{ 
@@ -226,9 +228,9 @@ def render_enhanced_html(
         }}
         
         .stats-section h2 {{ 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             color: #2c3e50;
-            font-size: 1.1rem;
+            font-size: 1.0rem;
             flex-shrink: 0; /* Don't shrink the header */
         }}
         
@@ -236,9 +238,9 @@ def render_enhanced_html(
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 8px;
+            gap: 6px;
             flex: 1; /* Take remaining space */
-            min-height: 150px;
+            min-height: 160px;
         }}
         
         .stat-card {{
@@ -254,7 +256,7 @@ def render_enhanced_html(
         }}
         
         .stat-card-value {{
-            font-size: 1.3rem;
+            font-size: 1.8rem;
             font-weight: 700;
             color: #e74c3c;
             margin-bottom: 3px;
@@ -262,7 +264,7 @@ def render_enhanced_html(
         }}
         
         .stat-card-label {{
-            font-size: 0.7rem;
+            font-size: 1.0rem;
             color: #7f8c8d;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -311,7 +313,7 @@ def render_enhanced_html(
             }}
             
             .stat-card-value {{
-                font-size: 1.5rem;
+                font-size: 2.0rem;
             }}
         }}
         
