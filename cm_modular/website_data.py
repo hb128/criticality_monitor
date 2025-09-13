@@ -93,7 +93,7 @@ def prepare_current_stats(df: pd.DataFrame) -> dict:
    }
 
 
-def prepare_plot_data(df: pd.DataFrame, rel_links: list[str]) -> dict:
+def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot = 120) -> dict:
     """Prepare data for time series plot."""
     if df.empty or 't' not in df.columns:
         return {'x': [], 'y': [], 'links': []}
@@ -101,8 +101,24 @@ def prepare_plot_data(df: pd.DataFrame, rel_links: list[str]) -> dict:
     # Filter out rows without valid timestamps
     valid_df = df[df['t'].notna()].copy()
     
+    if not valid_df.empty:
+        # Convert timestamps to datetime if they aren't already
+        valid_df['t'] = pd.to_datetime(valid_df['t'])
+        
+        # Get the latest timestamp and filter to last max_minutes_plot minutes
+        latest_time = valid_df['t'].max()
+        first_plot_time = latest_time - pd.Timedelta(minutes=max_minutes_plot)
+        valid_df = valid_df[valid_df['t'] >= first_plot_time]
+        
+        # Adjust rel_links to match the filtered data
+        # We need to find the original indices to map the links correctly
+        original_indices = valid_df.index.tolist()
+        filtered_links = [rel_links[i] if i < len(rel_links) else '' for i in original_indices] if rel_links else []
+    else:
+        filtered_links = []
+    
     return {
-        'x': [pd.to_datetime(t).isoformat() if pd.notna(t) else None for t in valid_df['t']],
+        'x': [t.isoformat() if pd.notna(t) else None for t in valid_df['t']],
         'y': [float(d) if pd.notna(d) else 0 for d in valid_df.get('length_m', [])],
-        'links': rel_links[:len(valid_df)] if rel_links else []
+        'links': filtered_links
     }
