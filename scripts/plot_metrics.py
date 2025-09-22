@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
-Plot columns from a metrics CSV (like the one produced by your pipeline).
+Plot columns from JSON state files.
 
 Examples
 --------
 # Basic: plot length_m over (parsed) timestamp from the 'file' path
-python plot_metrics.py metrics.csv
+python plot_metrics.py results.json
 
 # Choose columns
-python plot_metrics.py metrics.csv --y length_m n_filtered largest_comp_size
+python plot_metrics.py results.json --y length_m n_filtered largest_comp_size
 
 # Pick a different x-axis (index) and save to PNG
-python plot_metrics.py metrics.csv --x index --out out.png
+python plot_metrics.py results.json --x index --out out.png
 
 # Filter rows by a simple query (pandas query syntax)
-python plot_metrics.py metrics.csv --query "connection_radius_m == 200 and L0_m == 50"
+python plot_metrics.py results.json --query "connection_radius_m == 200 and L0_m == 50"
 """
 import argparse
 import re
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -37,6 +38,18 @@ def parse_timestamp_from_path(s: str):
     return pd.to_datetime(m.group("stamp"), format="%Y%m%d_%H%M%S")
 
 
+def load_data(data_path: Path) -> pd.DataFrame:
+    """Load data from JSON state file."""
+    with open(data_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    results = data.get('results', [])
+    if not results:
+        raise ValueError(f"No results found in JSON state file: {data_path}")
+    
+    return pd.DataFrame(results)
+
+
 def ensure_time_column(df: pd.DataFrame) -> pd.DataFrame:
     """Create column 't' by parsing from 'file' (falls back to 'html')."""
     t = pd.Series(pd.NaT, index=df.index, dtype="datetime64[ns]")
@@ -52,9 +65,9 @@ def ensure_time_column(df: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     p = argparse.ArgumentParser(
-        description="Plot columns from a metrics CSV with convenient defaults."
+        description="Plot columns from JSON state files."
     )
-    p.add_argument("csv", help="Path to the input CSV file.")
+    p.add_argument("data", help="Path to the JSON state file.")
     p.add_argument(
         "--x",
         default="t",
@@ -90,8 +103,8 @@ def main():
     args = p.parse_args()
 
     # Load
-    csv_path = Path(args.csv).expanduser().resolve()
-    df = pd.read_csv(csv_path)
+    data_path = Path(args.data).expanduser().resolve()
+    df = load_data(data_path)
 
     # Enrich with parsed time
     df = ensure_time_column(df)
@@ -130,7 +143,7 @@ def main():
     if args.title:
         plt.title(args.title)
     else:
-        plt.title(Path(args.csv).name)
+        plt.title(Path(args.data).name)
     if any(ycol in df.columns for ycol in args.y):
         plt.legend()
 

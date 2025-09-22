@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Convenience wrapper: run batch_build then build_site for a city.
+"""Convenience wrapper: run batch_build then build_enhanced_site for a city.
 
 Example:
   python -m scripts.build_city_site cm_logs/20220624 --city zurich --workers 4 --no-copy-maps
 
 This expands to roughly:
   python -m scripts.batch_build cm_logs/20220624 --city zurich --outdir site/zurich/maps --workers 4
-  python -m scripts.build_site site/zurich/maps/distances.csv --outdir site/zurich --no-copy-maps
+  python -m scripts.build_enhanced_site site/zurich/maps/results.json --outdir site/zurich --no-copy-maps
 
 Options let you override defaults similarly to the underlying scripts.
 """
@@ -23,15 +23,15 @@ except ImportError:
     import batch_build as bb  # fallback when run as plain script
 
 try:
-    from scripts.build_site import build_site  # type: ignore
+    from scripts.build_enhanced_site import build_enhanced_site  # type: ignore
 except ImportError:
-    from build_site import build_site  # fallback
+    from build_enhanced_site import build_enhanced_site  # fallback
 
 from cm_modular.pipeline import PipelineConfig
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Run batch_build + build_site in one step.")
+    p = argparse.ArgumentParser(description="Run batch_build + build_enhanced_site in one step.")
     p.add_argument("indir", help="Input directory containing JSON/.txt location files")
     p.add_argument("--city", type=str, default=None, help="City preset name (overrides bbox).")
     p.add_argument("--site-out", type=str, default=None, help="Base site output directory (default: site/<city> or site)")
@@ -52,12 +52,9 @@ def parse_args():
     p.add_argument("--min-edge-cost", type=float, default=15.0)
     p.add_argument("--bounds-expand", type=float, default=2.0)
     # Site build options
-    p.add_argument("--x", default="t", help="X column for chart (default: t)")
-    p.add_argument("--y", nargs="+", default=["length_m"], help="Y column(s) (default: length_m)")
-    p.add_argument("--style", choices=["line", "scatter"], default="line")
     p.add_argument("--title", default=None, help="Optional site title")
     p.add_argument("--no-copy-maps", dest="copy_maps", action="store_false", help="Do not copy map HTML files into site")
-    p.add_argument("--query", default=None, help="Optional pandas query filter for CSV rows")
+    p.add_argument("--query", default=None, help="Optional pandas query filter for data rows")
     return p.parse_args()
 
 
@@ -90,19 +87,16 @@ def main():
 
     # Run batch via shared function
     try:
-        csv_path = bb.run_batch(indir, maps_dir, a.patterns, cfg, workers=a.workers)
+        state_path = bb.run_batch(indir, maps_dir, a.patterns, cfg, workers=a.workers)
     except FileNotFoundError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
 
     # Build site
-    build_site(
-        csv_path=csv_path,
+    build_enhanced_site(
+        data_path=state_path,
         outdir=site_base,
-        x_col=a.x,
-        y_cols=a.y,
-        style=a.style,
-        title=a.title or (f"{a.city} critical length" if a.city else None),
+        city=a.city or "Critical Mass",
         copy_maps=a.copy_maps,
         maps_subdir=a.maps_subdir,
         query=a.query,

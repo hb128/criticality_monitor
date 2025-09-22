@@ -142,13 +142,14 @@ monitoring (watches all services)
 
 2. **File Processing**: Each `watch_and_process.py` instance monitors its city's log directory and processes new files through the pipeline, generating:
    - Individual map HTML files
-   - `distances.csv` with metrics
+   - `results.json` with processed file tracking and results data
 
-3. **Site Building**: `watch_and_build_site.py` monitors CSV files and builds enhanced websites with:
+3. **Site Building**: `watch_and_build_site.py` monitors JSON state files and builds enhanced websites with:
    - Recent rides plot
    - Leaderboards  
    - Interactive maps
    - City-specific and combined sites
+   - CSV files for backward compatibility
 
 4. **Web Serving**: Nginx serves all generated sites with proper routing
 

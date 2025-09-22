@@ -12,9 +12,10 @@ This creates a more sophisticated layout compared to build_site.py:
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import pandas as pd
 
@@ -30,7 +31,7 @@ from cm_modular.website_templates import render_enhanced_html
 
 
 def build_enhanced_site(
-    csv_path: Path,
+    data_path: Union[Path, str],
     outdir: Path,
     city: str = "Hamburg",
     copy_maps: bool = True,
@@ -39,13 +40,22 @@ def build_enhanced_site(
     recent_limit: int = 30,
     leaderboard_limit: int = 10,
 ) -> None:
-    """Build an enhanced Critical Mass website."""
+    """Build an enhanced Critical Mass website from JSON state file."""
     
-    print(f"Building enhanced site from {csv_path}")
+    data_path = Path(data_path)
+    print(f"Building enhanced site from {data_path}")
     print(f"Output directory: {outdir}")
     
-    # Read and process data
-    df = pd.read_csv(csv_path)
+    # Load from JSON state file
+    with open(data_path, 'r', encoding='utf-8') as f:
+        state_data = json.load(f)
+    
+    results = state_data.get('results', [])
+    if not results:
+        print("No results found in JSON state file")
+        return
+        
+    df = pd.DataFrame(results)
     df = ensure_time_column(df)
     
     if query:
@@ -101,10 +111,10 @@ def build_enhanced_site(
 def parse_args():
     """Parse command line arguments."""
     p = argparse.ArgumentParser(description="Build an enhanced Critical Mass website.")
-    p.add_argument("csv", help="Path to the metrics CSV (e.g., distances.csv)")
-    p.add_argument("--outdir", default="site", help="Output directory (default: site)")
+    p.add_argument("data", help="Path to the JSON state file (results.json)")
+    p.add_argument("--outdir", default="sites", help="Output directory (default: site)")
     p.add_argument("--city", default="Hamburg", help="City name (default: Hamburg)")
-    p.add_argument("--no-copy-maps", dest="copy_maps", action="store_false", help="Don't copy map files")
+    p.add_argument("--copy-maps", default=False, action="store_false", help="Don't copy map files")
     p.add_argument("--maps-subdir", default="maps", help="Maps subdirectory (default: maps)")
     p.add_argument("--query", default=None, help="Pandas query to filter data")
     p.add_argument("--recent-limit", type=int, default=30, help="Number of recent rides for plot (default: 30)")
@@ -115,11 +125,11 @@ def parse_args():
 def main():
     """Main entry point."""
     args = parse_args()
-    csv_path = Path(args.csv).expanduser().resolve()
+    data_path = Path(args.data).expanduser().resolve()
     outdir = Path(args.outdir).expanduser().resolve()
     
     build_enhanced_site(
-        csv_path=csv_path,
+        data_path=data_path,
         outdir=outdir,
         city=args.city,
         copy_maps=args.copy_maps,

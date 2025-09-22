@@ -49,9 +49,6 @@ class FileWatcher:
         self.interval = interval
         self.patterns = patterns or ['*.txt', '*.json']
         
-        # Keep track of processed files
-        self.processed_files: Set[str] = set()
-        
         # Create directories
         self.watch_dir.mkdir(parents=True, exist_ok=True)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -62,36 +59,26 @@ class FileWatcher:
         print(f"Workers: {self.workers}")
         print(f"Check interval: {self.interval}s")
         print(f"File patterns: {self.patterns}")
+        print(f"Note: Using batch_build incremental processing")
     
-    def get_current_files(self) -> Set[str]:
-        """Get all current files matching patterns."""
-        files = set()
-        for pattern in self.patterns:
-            for file_path in self.watch_dir.glob(pattern):
-                if file_path.is_file():
-                    files.add(str(file_path))
-        return files
-    
-    def process_new_files(self, new_files: Set[str]):
-        """Process new files through the batch pipeline."""
-        if not new_files:
-            return
-            
-        print(f"\n[{datetime.now()}] Found {len(new_files)} new files to process")
+    def process_new_files(self):
+        """Process files through the batch pipeline (now handles incremental internally)."""
+        print(f"\n[{datetime.now()}] Running batch processing...")
         
         # Create pipeline configuration
         cfg = PipelineConfig(city=self.city) if self.city else PipelineConfig()
         
         try:
-            # Process files using batch_build
-            csv_path = run_batch(
+            # Process files using batch_build with incremental processing
+            state_path = run_batch(
                 indir=self.watch_dir,
                 outdir=self.output_dir,
                 patterns=self.patterns,
                 cfg=cfg,
-                workers=self.workers
+                workers=self.workers,
+                incremental=True  # Enable incremental processing for watchers
             )
-            print(f"Batch processing completed. CSV written to: {csv_path}")
+            print(f"Batch processing completed. State saved to: {state_path}")
             
         except Exception as e:
             print(f"Error during batch processing: {e}")
@@ -100,21 +87,12 @@ class FileWatcher:
         """Main watch loop."""
         print("Starting file watcher...")
         
-        # Initial scan to populate processed files
-        self.processed_files = self.get_current_files()
-        print(f"Initial scan found {len(self.processed_files)} existing files")
-        
         while True:
             try:
-                current_files = self.get_current_files()
-                new_files = current_files - self.processed_files
+                # Run batch processing (it will handle incremental processing internally)
+                self.process_new_files()
                 
-                if new_files:
-                    self.process_new_files(new_files)
-                    self.processed_files = current_files
-                else:
-                    print(f"[{datetime.now()}] No new files found")
-                
+                print(f"[{datetime.now()}] Waiting {self.interval} seconds until next check...")
                 time.sleep(self.interval)
                 
             except KeyboardInterrupt:

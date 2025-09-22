@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build a static, interactive website from a metrics CSV.
+Build a static, interactive website from JSON state files.
 
 Features
 --------
@@ -12,7 +12,7 @@ Features
 
 Usage
 -----
-python scripts/build_site.py path/to/distances.csv \
+python scripts/build_site.py path/to/results.json \
   --outdir site \
   --x t \
   --y length_m \
@@ -36,6 +36,18 @@ import pandas as pd
 # --- Utilities copied/adapted from scripts/plot_metrics.py ---
 import re
 STAMP_RE = re.compile(r"(?P<stamp>\d{8}_\d{6})")  # e.g., 20220624_202509
+
+
+def load_data(data_path: Path) -> pd.DataFrame:
+    """Load data from JSON state file."""
+    with open(data_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    results = data.get('results', [])
+    if not results:
+        raise ValueError(f"No results found in JSON state file: {data_path}")
+    
+    return pd.DataFrame(results)
 
 
 def parse_timestamp_from_path(s: str):
@@ -65,7 +77,7 @@ def make_safe_filename(base: str) -> str:
 
 
 def build_site(
-    csv_path: Path,
+    data_path: Path,
     outdir: Path,
     *,
     x_col: str = "t",
@@ -78,7 +90,7 @@ def build_site(
 ):
     outdir.mkdir(parents=True, exist_ok=True)
 
-    df = pd.read_csv(csv_path)
+    df = load_data(data_path)
     df = ensure_time_column(df)
 
     if query:
@@ -153,7 +165,7 @@ def build_site(
         "yCols": [c for c in y_cols if c in df.columns],
         "series": {c: df[c].tolist() for c in y_cols if c in df.columns},
         "links": rel_links,
-        "title": title or csv_path.name,
+        "title": title or data_path.name,
         "rows": rows_for_table,
         "xLabel": x_col,
         "style": style,
@@ -319,14 +331,14 @@ def _render_html(data: dict) -> str:
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Build an interactive website from a metrics CSV.")
-    p.add_argument("csv", help="Path to the metrics CSV (e.g., distances.csv)")
-    p.add_argument("--outdir", default="site", help="Output directory for the static website (default: site)")
+    p = argparse.ArgumentParser(description="Build an interactive website from JSON state files.")
+    p.add_argument("data", help="Path to the JSON state file (e.g., results.json)")
+    p.add_argument("--outdir", default="sites", help="Output directory for the static website (default: site)")
     p.add_argument("--x", default="t", help="X column (default: t; use 'index' for row index)")
     p.add_argument("--y", nargs="+", default=["length_m"], help="Y columns to plot (default: length_m)")
     p.add_argument("--style", choices=["line", "scatter"], default="line", help="Plot style (default: line)")
     p.add_argument("--title", default=None, help="Optional page title")
-    p.add_argument("--no-copy-maps", dest="copy_maps", action="store_false", help="Do not copy map HTML files into the site folder")
+    p.add_argument("--copy-maps", default=False, action="store_false", help="Do not copy map HTML files into the site folder")
     p.add_argument("--maps-subdir", default="maps", help="Subdirectory under outdir for copied maps (default: maps)")
     p.add_argument("--query", default=None, help="Optional pandas query to filter rows")
     return p.parse_args()
@@ -334,10 +346,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    csv_path = Path(args.csv).expanduser().resolve()
+    data_path = Path(args.data).expanduser().resolve()
     outdir = Path(args.outdir).expanduser().resolve()
     build_site(
-        csv_path=csv_path,
+        data_path=data_path,
         outdir=outdir,
         x_col=args.x,
         y_cols=args.y,

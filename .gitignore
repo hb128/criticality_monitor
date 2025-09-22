@@ -4,3 +4,5 @@ cm_logs/
 *.txt
 site/
 out/
+sites/
+test_deployment/
