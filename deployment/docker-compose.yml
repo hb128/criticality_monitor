@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # Automated location logger - runs continuously
+  automated-logger:
+    build: .
+    container_name: cm-automated-logger
+    restart: unless-stopped
+    volumes:
+      - ./cm_logs:/app/cm_logs
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=INFO
+      - LOG_DIR=/app/cm_logs/automated
+      - INTERVAL=15
+    command: python scripts/automated_logger.py --interval ${INTERVAL:-60} --log-dir ${LOG_DIR:-cm_logs/automated} --verbose
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cm_logs/automated') else 1)"]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Batch processor for city 1 (Hamburg)
+  batch-processor-hamburg:
+    build: .
+    container_name: cm-batch-hamburg
+    restart: unless-stopped
+    volumes:
+      - ./cm_logs:/app/cm_logs
+      - ./site:/app/site
+      - ./config:/app/config
+    environment:
+      - WATCH_DIR=/app/cm_logs/hamburg
+      - OUTPUT_DIR=/app/site/hamburg
+      - CITY=hamburg
+      - WORKERS=2
+    command: python scripts/watch_and_process.py --city hamburg --watch-dir /app/cm_logs/hamburg --output-dir /app/site/hamburg --workers 2
+    depends_on:
+      - automated-logger
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Batch processor for city 2 (Berlin)
+  batch-processor-berlin:
+    build: .
+    container_name: cm-batch-berlin
+    restart: unless-stopped
+    volumes:
+      - ./cm_logs:/app/cm_logs
+      - ./site:/app/site
+      - ./config:/app/config
+    environment:
+      - WATCH_DIR=/app/cm_logs/berlin
+      - OUTPUT_DIR=/app/site/berlin
+      - CITY=berlin
+      - WORKERS=2
+    command: python scripts/watch_and_process.py --city berlin --watch-dir /app/cm_logs/berlin --output-dir /app/site/berlin --workers 2
+    depends_on:
+      - automated-logger
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Enhanced site builder - processes results and builds websites
+  site-builder:
+    build: .
+    container_name: cm-site-builder
+    restart: unless-stopped
+    volumes:
+      - ./site:/app/site
+      - ./config:/app/config
+    environment:
+      - WATCH_INTERVAL=300  # 5 minutes
+      - PRIMARY_CITY=hamburg
+    command: python scripts/watch_and_build_site.py --interval 300 --primary-city hamburg
+    depends_on:
+      - batch-processor-hamburg
+      - batch-processor-berlin
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Web server to serve the generated sites
+  web-server:
+    image: nginx:alpine
+    container_name: cm-web-server
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - site-builder
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Monitoring service
+  monitoring:
+    build: .
+    container_name: cm-monitoring
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - CHECK_INTERVAL=60
+    command: python scripts/monitor_services.py --interval 60
+    depends_on:
+      - automated-logger
+      - batch-processor-hamburg
+      - batch-processor-berlin
+      - site-builder
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+# Shared volumes for data persistence
+volumes:
+  cm_logs:
+  site_data:
+  config_data:
+
+# Network for service communication
+networks:
+  default:
+    name: critical-mass-network
