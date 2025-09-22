@@ -36,25 +36,33 @@ class AutomatedLogger:
                  interval: int = 60,
                  log_dir: str = "cm_logs/automated",
                  max_runs: Optional[int] = None,
-                 verbose: bool = False):
+                 verbose: bool = False,
+                 debug_source: Optional[str] = None):
         """
         Initialize the automated logger.
         
         Args:
             interval (int): Seconds between logging runs
             log_dir (str): Directory to save logs and maps
-            center_location (tuple): Map center coordinates (lat, lon)
-            zoom_start (int): Initial map zoom level
             max_runs (int, optional): Maximum number of runs (None = unlimited)
             verbose (bool): Enable verbose output
+            debug_source (str, optional): Directory containing txt files for debug mode
         """
         self.interval = interval
         self.log_dir = log_dir
         self.max_runs = max_runs
         self.verbose = verbose
+        self.debug_source = debug_source
         
         self.run_count = 0
         self.running = False
+        
+        # Debug mode state tracking
+        self.debug_files = []
+        self.debug_file_index = 0
+        
+        if self.debug_source:
+            self._load_debug_files()
         
         # Setup signal handler for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -71,6 +79,62 @@ class AutomatedLogger:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"[{timestamp}] {message}")
     
+    def _load_debug_files(self):
+        """Load and sort txt files from debug source directory."""
+        if not self.debug_source:
+            return
+            
+        debug_path = Path(self.debug_source)
+        if not debug_path.exists():
+            print(f"Warning: Debug source directory does not exist: {debug_path}")
+            return
+            
+        # Find all .txt files and sort them alphabetically
+        self.debug_files = sorted(debug_path.glob("*.txt"))
+        
+        if not self.debug_files:
+            print(f"Warning: No .txt files found in debug source directory: {debug_path}")
+        else:
+            self._log_message(f"Loaded {len(self.debug_files)} debug files from {debug_path}")
+    
+    def _copy_debug_file(self) -> int:
+        """
+        Copy the next debug file to the log directory.
+        
+        Returns:
+            int: Number of lines copied (simulating positions count)
+        """
+        if not self.debug_files:
+            return 0
+            
+        if self.debug_file_index >= len(self.debug_files):
+            self._log_message("All debug files processed, cycling back to start")
+            self.debug_file_index = 0
+            
+        source_file = self.debug_files[self.debug_file_index]
+        self.debug_file_index += 1
+        
+        # Generate timestamp-based filename for the copy
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        dest_filename = f"{timestamp}.txt"
+        dest_path = Path(self.log_dir) / dest_filename
+        
+        try:
+            # Copy the file content
+            import shutil
+            shutil.copy2(source_file, dest_path)
+            
+            # Count lines to simulate position count
+            with open(source_file, 'r', encoding='utf-8') as f:
+                line_count = sum(1 for line in f if line.strip())
+            
+            self._log_message(f"Copied debug file: {source_file.name} -> {dest_filename} ({line_count} lines)")
+            return line_count
+            
+        except Exception as e:
+            print(f"Error copying debug file {source_file}: {e}")
+            return 0
+    
     def run_single_log(self) -> bool:
         """
         Run a single logging operation.
@@ -81,13 +145,21 @@ class AutomatedLogger:
         try:
             self._log_message(f"Starting logging run #{self.run_count + 1}")
             
-            positions = log_locations(self.log_dir)
+            if self.debug_source:
+                # Debug mode: copy a file from debug source
+                position_count = self._copy_debug_file()
+            else:
+                # Normal mode: use API
+                positions = log_locations(self.log_dir)
+                position_count = len(positions)
             
-            if len(positions) > 0:
-                self._log_message(f"Successfully logged {len(positions)} positions")
+            if position_count > 0:
+                mode = "debug file" if self.debug_source else "API"
+                self._log_message(f"Successfully logged {position_count} positions from {mode}")
                 return True
             else:
-                self._log_message("No positions logged (API might be unavailable)")
+                mode = "debug directory" if self.debug_source else "API"
+                self._log_message(f"No positions logged ({mode} might be unavailable)")
                 return False
                 
         except Exception as e:
@@ -97,6 +169,9 @@ class AutomatedLogger:
     def start(self):
         """Start the automated logging process."""
         print(f"Starting automated location logger...")
+        print(f"Mode: {'Debug (file replay)' if self.debug_source else 'Normal (API)'}")
+        if self.debug_source:
+            print(f"Debug source: {self.debug_source} ({len(self.debug_files)} files)")
         print(f"Interval: {self.interval} seconds")
         print(f"Log directory: {self.log_dir}")
         print(f"Max runs: {self.max_runs if self.max_runs else 'unlimited'}")
@@ -151,6 +226,7 @@ Examples:
   python automated_logger.py --interval 30            # Log every 30 seconds
   python automated_logger.py --log-dir my_logs        # Custom directory
   python automated_logger.py --max-runs 10 --verbose  # 10 runs with verbose output
+  python automated_logger.py --debug-source cm_logs/20220624  # Debug mode with historical data
         """
     )
     
@@ -182,6 +258,13 @@ Examples:
     )
     
     parser.add_argument(
+        '--debug-source', 
+        type=str, 
+        default=None,
+        help='Directory containing txt files for debug mode (replays files instead of using API)'
+    )
+    
+    parser.add_argument(
         '--verbose', 
         action='store_true',
         help='Enable verbose output'
@@ -203,7 +286,8 @@ Examples:
         interval=args.interval,
         log_dir=args.log_dir,
         max_runs=args.max_runs,
-        verbose=args.verbose
+        verbose=args.verbose,
+        debug_source=args.debug_source
     )
     
     try:

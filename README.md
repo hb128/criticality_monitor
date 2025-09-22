@@ -29,3 +29,19 @@ m, out_path = pipe.run("/path/to/20220624_221210.txt", "hamburg_clusters_with_pa
 - Angle-biased expanded-state Dijkstra (turn + step penalties + short-edge floor)
 - True geometric path length is shown on the map (penalties do **not** affect displayed length).
 - All constants are configurable via `PipelineConfig` or CLI flags.
+
+### Test website tool chain:
+Logger:
+```bash
+python -m scripts.automated_logger --log-dir test_deployment/logs --debug-source .\cm_logs\20220624\
+```
+
+Analysis:
+```bash
+python -m scripts.watch_and_process  --interval 1 --watch-dir test_deployment/logs/ --output-dir test_deployment/analysis --city Hamburg
+```
+
+Website:
+```bash
+python -m scripts.watch_and_build_site --site-root .\test_deployment\
+```

@@ -156,7 +156,7 @@ class SiteBuilder:
                 data_path=combined_state_path,
                 outdir=main_output,
                 city="Critical Mass Global",
-                copy_maps=False,  # Don't copy individual maps
+                copy_maps=True,  # Don't copy individual maps
                 recent_limit=50,
                 leaderboard_limit=20
             )
@@ -212,7 +212,7 @@ def parse_args():
     parser.add_argument(
         "--interval",
         type=int,
-        default=300,
+        default=1,
         help="Check interval in seconds (default: 300)"
     )
     
