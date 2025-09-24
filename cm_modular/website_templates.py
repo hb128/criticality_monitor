@@ -410,32 +410,69 @@ def render_enhanced_html(
 
         // Initialize chart
         if (DATA.plot && DATA.plot.x.length > 0) {{
-            const trace = {{
-                x: DATA.plot.x,
-                y: DATA.plot.y,
+            // Group data by city
+            const cityData = {{}};
+            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+            let colorIndex = 0;
+            
+            // Group points by city
+            for (let i = 0; i < DATA.plot.x.length; i++) {{
+                const city = DATA.plot.cities ? DATA.plot.cities[i] : 'Unknown';
+                if (!cityData[city]) {{
+                    cityData[city] = {{
+                        x: [],
+                        y: [],
+                        links: [],
+                        color: colors[colorIndex % colors.length]
+                    }};
+                    colorIndex++;
+                }}
+                cityData[city].x.push(DATA.plot.x[i]);
+                cityData[city].y.push(DATA.plot.y[i]);
+                if (DATA.plot.links && DATA.plot.links[i]) {{
+                    cityData[city].links.push(DATA.plot.links[i]);
+                }} else {{
+                    cityData[city].links.push('');
+                }}
+            }}
+
+            // Create traces for each city
+            const traces = Object.keys(cityData).map(city => ({{
+                x: cityData[city].x,
+                y: cityData[city].y,
                 type: 'scattergl',
                 mode: 'lines+markers',
-                name: 'Route Length',
-                line: {{ color: '#e74c3c', width: 3 }},
-                marker: {{ color: '#e74c3c', size: 6 }},
-                hovertemplate: '<b>%{{y:.0f}}m</b><br>%{{x}}<extra></extra>'
-            }};
+                name: city,
+                line: {{ color: cityData[city].color, width: 3 }},
+                marker: {{ color: cityData[city].color, size: 6 }},
+                hovertemplate: '<b>%{{y:.0f}}m</b><br>%{{x}}<br>' + city + '<extra></extra>',
+                customdata: cityData[city].links
+            }})));
 
             const layout = {{
                 xaxis: {{ title: 'Date' }},
                 yaxis: {{ title: 'Distance (meters)' }},
-                margin: {{ l: 60, r: 20, t: 20, b: 60 }},
+                margin: {{ l: 60, r: 20, t: 40, b: 60 }},
                 plot_bgcolor: 'rgba(0,0,0,0)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
-                font: {{ family: 'Segoe UI, system-ui, sans-serif' }}
+                font: {{ family: 'Segoe UI, system-ui, sans-serif' }},
+                showlegend: true,
+                legend: {{
+                    x: 1,
+                    xanchor: 'right',
+                    y: 1,
+                    bgcolor: 'rgba(255,255,255,0.8)',
+                    bordercolor: 'rgba(0,0,0,0.1)',
+                    borderwidth: 1
+                }}
             }};
 
-            Plotly.newPlot('chart', [trace], layout, {{ responsive: true }});
+            Plotly.newPlot('chart', traces, layout, {{ responsive: true }});
 
             // Handle chart clicks
             document.getElementById('chart').on('plotly_click', function(data) {{
                 const pointIndex = data.points[0].pointIndex;
-                const mapUrl = DATA.plot.links[pointIndex];
+                const mapUrl = data.points[0].customdata[pointIndex];
                 if (mapUrl) {{
                     window.open(mapUrl, '_blank');
                 }}
@@ -444,7 +481,7 @@ def render_enhanced_html(
             // Handle chart hover - show map of hovered datapoint
             document.getElementById('chart').on('plotly_hover', function(data) {{
                 const pointIndex = data.points[0].pointIndex;
-                const mapUrl = DATA.plot.links[pointIndex];
+                const mapUrl = data.points[0].customdata[pointIndex];
                 const mapFrame = document.getElementById('latest-map');
                 if (mapUrl && mapFrame) {{
                     mapFrame.src = mapUrl;

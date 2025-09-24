@@ -30,6 +30,7 @@ def prepare_recent_data(df: pd.DataFrame, limit: int) -> dict:
             'length_m': float(row.get('length_m', 0)) if pd.notna(row.get('length_m')) else 0,
             'date': date_str,
             'participants': int(row.get('n_filtered', 0)) if 'n_filtered' in row and pd.notna(row.get('n_filtered')) else None,
+            'city': str(row.get('city', 'Unknown')) if pd.notna(row.get('city')) else 'Unknown',
         }
         records.append(record)
     
@@ -118,7 +119,7 @@ def prepare_current_stats(df: pd.DataFrame) -> dict:
 def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot = 120) -> dict:
     """Prepare data for time series plot."""
     if df.empty or 't' not in df.columns:
-        return {'x': [], 'y': [], 'links': []}
+        return {'x': [], 'y': [], 'links': [], 'cities': []}
     
     # Filter out rows without valid timestamps
     valid_df = df[df['t'].notna()].copy()
@@ -139,8 +140,12 @@ def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot =
     else:
         filtered_links = []
     
+    # Extract city information for each data point
+    cities = [str(city) if pd.notna(city) else 'Unknown' for city in valid_df.get('city', ['Unknown'] * len(valid_df))]
+    
     return {
         'x': [t.isoformat() if pd.notna(t) else None for t in valid_df['t']],
         'y': [float(d) if pd.notna(d) else 0 for d in valid_df.get('length_m', [])],
-        'links': filtered_links
+        'links': filtered_links,
+        'cities': cities
     }
