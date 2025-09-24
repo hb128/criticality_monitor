@@ -101,10 +101,9 @@ class SiteBuilder:
                 data_path=state_path,
                 outdir=output_dir,
                 city=city.title(),
-                copy_maps=True,
+                copy_maps=False,
                 maps_subdir="maps",
-                recent_limit=30,
-                leaderboard_limit=10
+                recent_limit=30
             )
             
             print(f"Site built successfully for {city}")
@@ -120,6 +119,7 @@ class SiteBuilder:
             
             for city, state_path in state_files.items():
                 try:
+                    print('Read state file:', city.title())
                     results = self.load_results_from_state(state_path)
                     for result in results:
                         result['city'] = city.title()
@@ -156,7 +156,7 @@ class SiteBuilder:
                 data_path=combined_state_path,
                 outdir=main_output,
                 city="Critical Mass Global",
-                copy_maps=True,  # Don't copy individual maps
+                copy_maps=False,  # Don't copy individual maps
                 recent_limit=50
             )
             

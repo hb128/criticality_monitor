@@ -295,6 +295,7 @@ class Pipeline:
             "angle_bias_m_per_rad": float(self.cfg.angle_bias_m_per_rad),
             "L0_m": float(self.cfg.L0),
             "penalty_factor": float(self.cfg.penalty_factor),
+            "city": self.cfg.city,  # Add city from config
         }
 
         # Also include file/html like batch expected
