@@ -447,7 +447,7 @@ def render_enhanced_html(
                 marker: {{ color: cityData[city].color, size: 6 }},
                 hovertemplate: '<b>%{{y:.0f}}m</b><br>%{{x}}<br>' + city + '<extra></extra>',
                 customdata: cityData[city].links
-            }})));
+            }}));
 
             const layout = {{
                 xaxis: {{ title: 'Date' }},
@@ -458,9 +458,10 @@ def render_enhanced_html(
                 font: {{ family: 'Segoe UI, system-ui, sans-serif' }},
                 showlegend: true,
                 legend: {{
-                    x: 1,
-                    xanchor: 'right',
+                    x: 0,
+                    xanchor: 'left',
                     y: 1,
+                    yanchor: 'top',
                     bgcolor: 'rgba(255,255,255,0.8)',
                     bordercolor: 'rgba(0,0,0,0.1)',
                     borderwidth: 1
@@ -471,8 +472,8 @@ def render_enhanced_html(
 
             // Handle chart clicks
             document.getElementById('chart').on('plotly_click', function(data) {{
-                const pointIndex = data.points[0].pointIndex;
-                const mapUrl = data.points[0].customdata[pointIndex];
+                // Each point's customdata is already the full map URL string
+                const mapUrl = data.points[0].customdata;
                 if (mapUrl) {{
                     window.open(mapUrl, '_blank');
                 }}
@@ -480,8 +481,7 @@ def render_enhanced_html(
             
             // Handle chart hover - show map of hovered datapoint
             document.getElementById('chart').on('plotly_hover', function(data) {{
-                const pointIndex = data.points[0].pointIndex;
-                const mapUrl = data.points[0].customdata[pointIndex];
+                const mapUrl = data.points[0].customdata;
                 const mapFrame = document.getElementById('latest-map');
                 if (mapUrl && mapFrame) {{
                     mapFrame.src = mapUrl;
