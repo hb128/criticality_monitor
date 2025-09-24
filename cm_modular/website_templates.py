@@ -45,55 +45,7 @@ def render_enhanced_html(
             margin: 0 auto; 
             padding: 0 15px;
         }}
-        
-        /* Header */
-        .hero {{ 
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 10px 0;
-            text-align: center;
-            border-radius: 0 0 15px 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }}
-        
-        .hero h1 {{ 
-            font-size: 1.8rem; 
-            font-weight: 700; 
-            color: #2c3e50;
-            margin-bottom: 0;
-        }}
-        
-        .hero .subtitle {{ 
-            font-size: 1.2rem; 
-            color: #7f8c8d;
-            margin-bottom: 20px;
-        }}
-        
-        .hero .current-stats {{ 
-            display: flex; 
-            justify-content: center; 
-            gap: 40px; 
-            flex-wrap: wrap;
-        }}
-        
-        .stat-item {{ 
-            text-align: center;
-        }}
-        
-        .stat-value {{ 
-            font-size: 2rem; 
-            font-weight: 700; 
-            color: #e74c3c;
-        }}
-        
-        .stat-label {{ 
-            font-size: 0.9rem; 
-            color: #7f8c8d; 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        
+                
         /* Main content */
         .main-content {{ 
             background: rgba(255, 255, 255, 0.95);
@@ -177,25 +129,11 @@ def render_enhanced_html(
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }}
         
-        .rank {{ 
-            font-weight: 700; 
-            font-size: 0.85rem; 
-            color: #e74c3c;
-            min-width: 20px;
-        }}
+    .rank {{ font-weight: 700; font-size: 0.85rem; min-width: 20px; }}
         
-        .distance {{ 
-            font-weight: 600; 
-            color: #2c3e50;
-            font-size: 0.8rem;
-        }}
+    .distance {{ font-weight: 600; font-size: 0.8rem; }}
         
-        .city-name {{ 
-            font-weight: 700; 
-            color: #3498db;
-            font-size: 0.75rem;
-            text-transform: capitalize;
-        }}
+    .city-name {{ font-weight: 700; font-size: 0.75rem; text-transform: capitalize; }}
         
         .date {{ 
             font-size: 0.8rem; 
@@ -279,18 +217,8 @@ def render_enhanced_html(
         }}
         
         /* Responsive */
-        @media (max-width: 1023px) {{
-            .content-grid {{ 
-                grid-template-columns: 1fr; 
-                grid-template-rows: auto auto auto auto;
-                min-height: auto;
-            }}
-            
-            .grid-item {{
-                height: 40vh;
-                min-height: 300px;
-            }}
-            
+        @media (max-width: 768px) {{
+            .container {{ padding: 0 15px; }}
             .stats-grid {{
                 grid-template-columns: 1fr 1fr;
                 min-height: 120px;
@@ -342,12 +270,8 @@ def render_enhanced_html(
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Hero Section -->
-        <section class="hero">
-            <h1> Criticality monitor
- {html.escape(city)}</h1>
-        </section>
+    <div class="container" style="margin-top:8px;">
+        <!-- Title removed intentionally -->
 
         <!-- Main Content - 2x2 Grid -->
         <section class="main-content">
