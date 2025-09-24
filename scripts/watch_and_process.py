@@ -43,7 +43,7 @@ class FileWatcher:
             patterns: File patterns to watch for
         """
         self.watch_dir = Path(watch_dir)
-        self.output_dir = Path(output_dir)
+        self.output_dir = Path(output_dir + "/" + city)
         self.city = city
         self.workers = workers
         self.interval = interval
@@ -124,7 +124,7 @@ def parse_args():
     parser.add_argument(
         "--city",
         type=str,
-        default=None,
+        default="hamburg",
         help="City preset for pipeline configuration"
     )
     
