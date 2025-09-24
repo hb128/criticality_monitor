@@ -56,13 +56,16 @@ def render_enhanced_html(
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }}
         
-        /* 2x2 Grid Layout for iPad Landscape */
-        .content-grid {{ 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            grid-template-rows: 42vh 42vh;
-            gap: 10px; 
-            min-height: 84vh; /* Stretch to fill more vertical space */
+        /* Layout optimized for 1024x768: left column split, right column full height map */
+        .content-grid {{
+            display: grid;
+            grid-template-columns: 48% 52%;
+            grid-template-rows: 50% 50%;
+            grid-template-areas: 
+                "chart map"
+                "info  map";
+            gap: 8px;
+            height: calc(100vh - 32px); /* fill viewport minus small padding */
         }}
         
         .grid-item {{
@@ -75,42 +78,39 @@ def render_enhanced_html(
             flex-direction: column;
         }}
         
-        /* Chart section - Top Left */
-        .chart-section {{ 
-            
-        }}
-        
-        .chart-section h2 {{ 
-            margin-bottom: 8px; 
-            color: #2c3e50;
-            font-size: 1.0rem;
-        }}
-        
-        #chart {{ 
-            width: 100%; 
+        /* Sections */
+        .chart-section {{ grid-area: chart; }}
+        .map-section {{ grid-area: map; }}
+        .info-section {{ 
+            grid-area: info; 
+            /* OLD:
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            */
+            display: grid;
+            grid-template-columns: 55% 45%;
+            grid-template-rows: 1fr;
+            gap: 8px;
+            overflow: hidden;
             height: 100%;
-            min-height: 220px;
-            border-radius: 8px;
-            flex: 1; /* Take remaining space */
         }}
         
-        /* Leaderboard - Top Right */
-        .leaderboard {{
-            
+        .stats-block {{ 
+            /* remove flex-shrink; make it fill its grid cell */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }}
         
-        .leaderboard h2 {{ 
-            margin-bottom: 8px; 
-            color: #2c3e50;
-            font-size: 1.0rem;
-            flex-shrink: 0; /* Don't shrink the header */
+        .leaderboard-block {{ 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            height: 100%;
         }}
-        
-        #leaderboard-list {{
-            flex: 1; /* Take remaining space */
-            overflow-y: auto;
-            max-height: 100%;
-        }}
+        #leaderboard-list {{ flex: 1; overflow-y: auto; }}
         
         .leaderboard-item {{ 
             display: flex; 
@@ -167,25 +167,14 @@ def render_enhanced_html(
             border: none;
         }}
         
-        /* Stats section - Bottom Right */
-        .stats-section {{
-            
-        }}
-        
-        .stats-section h2 {{ 
-            margin-bottom: 8px; 
-            color: #2c3e50;
-            font-size: 1.0rem;
-            flex-shrink: 0; /* Don't shrink the header */
-        }}
+        /* Stats */
         
         .stats-grid {{
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto;
             gap: 6px;
-            flex: 1; /* Take remaining space */
-            min-height: 160px;
+            min-height: 130px;
         }}
         
         .stat-card {{
@@ -217,11 +206,20 @@ def render_enhanced_html(
         }}
         
         /* Responsive */
-        @media (max-width: 768px) {{
-            .container {{ padding: 0 15px; }}
-            .stats-grid {{
-                grid-template-columns: 1fr 1fr;
-                min-height: 120px;
+        @media (max-width: 900px) {{
+            .content-grid {{
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+                grid-template-areas: 
+                    "chart"
+                    "map"
+                    "info";
+                height: auto;
+            }}
+            /* Stack again on small screens */
+            .info-section {{
+                display: flex;
+                flex-direction: column;
             }}
         }}
         
@@ -276,44 +274,37 @@ def render_enhanced_html(
         <!-- Main Content - 2x2 Grid -->
         <section class="main-content">
             <div class="content-grid">
-                <!-- Top Left: Chart Section -->
                 <div class="chart-section grid-item">
                     <div id="chart"></div>
                 </div>
-
-                
-                <!-- Top Right: Stats Section -->
-                <div class="stats-section grid-item">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-card-value" id="total-distance">{current_stats['latest_length']:.0f}m</div>
-                            <div class="stat-card-label">Current Length</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-value" id="number-points">{current_stats['n_filtered']:d}</div>
-                            <div class="stat-card-label">Mass Trackers</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-value">{current_stats['max_length']:.0f}m</div>
-                            <div class="stat-card-label">Max Length</div>
+                <div class="info-section grid-item">
+                    <div class="stats-block">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-value" id="total-distance">{current_stats['latest_length']:.0f}m</div>
+                                <div class="stat-card-label">Current Length</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-value" id="number-points">{current_stats['n_filtered']:d}</div>
+                                <div class="stat-card-label">Mass Trackers</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-value">{current_stats['max_length']:.0f}m</div>
+                                <div class="stat-card-label">Max Length</div>
+                            </div>
                         </div>
                     </div>
+                    <div class="leaderboard-block">
+                        <h2>Leaderboard</h2>
+                        <div id="leaderboard-list"></div>
+                    </div>
                 </div>
-
-                <!-- Bottom Left: Map Section -->
                 <div class="map-section grid-item">
                     <h2>Latest Route</h2>
                     <div class="map-container">
                         <iframe id="latest-map" src="" title="Latest Criticality Monitor Route"></iframe>
                     </div>
                 </div>
-                
-                <!-- Bottom Right: Leaderboard -->
-                <div class="leaderboard grid-item">
-                    <h2>Leaderboard</h2>
-                    <div id="leaderboard-list"></div>
-                </div>
-                
             </div>
         </section>
     </div>
