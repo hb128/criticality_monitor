@@ -191,7 +191,7 @@ def render_enhanced_html(
         }}
         
         .city-name {{ 
-            font-weight: 500; 
+            font-weight: 700; 
             color: #3498db;
             font-size: 0.75rem;
             text-transform: capitalize;
@@ -449,6 +449,10 @@ def render_enhanced_html(
                 customdata: cityData[city].links
             }}));
 
+            // Expose city -> color mapping globally for leaderboard styling
+            window.CITY_COLORS = {{}};
+            Object.keys(cityData).forEach(c => {{ window.CITY_COLORS[c] = cityData[c].color; }});
+
             const layout = {{
                 xaxis: {{ title: 'Date' }},
                 yaxis: {{ title: 'Distance (meters)' }},
@@ -496,15 +500,13 @@ def render_enhanced_html(
             DATA.leaderboard.records.forEach(record => {{
                 const item = document.createElement('div');
                 item.className = 'leaderboard-item';
+                const cityColor = (window.CITY_COLORS && window.CITY_COLORS[record.city]) || '#3498db';
                 
                 // City leaderboard
                 item.innerHTML = `
-                    <div class="rank">#${{record.rank}}</div>
-                    <div>
-                        <div class="distance">${{record.length_m.toFixed(0)}}m</div>
-                        <div class="city-name">${{record.city}}</div>
-                        <div class="date">${{record.date}}</div>
-                    </div>
+                    <div class="rank" style="color:${{cityColor}}">#${{record.rank}}</div>
+                    <div class="city-name" style="color:${{cityColor}}">${{record.city}}</div>
+                    <div class="distance" style="color:${{cityColor}}">${{record.length_m.toFixed(0)}}m</div>
                 `;
                 leaderboardContainer.appendChild(item);
                 
