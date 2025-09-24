@@ -96,7 +96,7 @@ def main():
     build_enhanced_site(
         data_path=state_path,
         outdir=site_base,
-        city=a.city or "Critical Mass",
+        city=a.city or "Criticality Monitor",
         copy_maps=a.copy_maps,
         maps_subdir=a.maps_subdir,
         query=a.query,

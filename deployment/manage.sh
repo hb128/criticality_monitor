@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Critical Mass Server Management Script
+# Criticality Monitor Server Management Script
 # Usage: ./manage.sh [start|stop|restart|status|logs|update]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -51,7 +51,7 @@ check_dependencies() {
 
 # Start all services
 start_services() {
-    log "Starting Critical Mass services..."
+    log "Starting Criticality Monitor services..."
     
     cd "$SCRIPT_DIR"
     
@@ -82,7 +82,7 @@ start_services() {
 
 # Stop all services
 stop_services() {
-    log "Stopping Critical Mass services..."
+    log "Stopping Criticality Monitor services..."
     
     cd "$SCRIPT_DIR"
     $COMPOSE_CMD down
@@ -92,7 +92,7 @@ stop_services() {
 
 # Restart all services
 restart_services() {
-    log "Restarting Critical Mass services..."
+    log "Restarting Criticality Monitor services..."
     stop_services
     sleep 2
     start_services
@@ -127,7 +127,7 @@ show_logs() {
 
 # Update and rebuild services
 update_services() {
-    log "Updating Critical Mass services..."
+    log "Updating Criticality Monitor services..."
     
     cd "$SCRIPT_DIR"
     
@@ -167,7 +167,7 @@ scale_service() {
 
 # Show disk usage
 show_disk_usage() {
-    log "Disk usage for Critical Mass data:"
+    log "Disk usage for Criticality Monitor data:"
     
     echo "Log files:"
     du -sh "$PROJECT_DIR/cm_logs" 2>/dev/null || echo "  No log directory found"
@@ -229,7 +229,7 @@ cleanup() {
 
 # Show help
 show_help() {
-    echo "Critical Mass Server Management Script"
+    echo "Criticality Monitor Server Management Script"
     echo ""
     echo "Usage: $0 <command> [options]"
     echo ""

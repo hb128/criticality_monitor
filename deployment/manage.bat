@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Critical Mass Server Management Script for Windows
+REM Criticality Monitor Server Management Script for Windows
 REM Usage: manage.bat [start|stop|restart|status|logs|update]
 
 set "SCRIPT_DIR=%~dp0"
@@ -54,7 +54,7 @@ goto :eof
 
 REM Start all services
 :start_services
-call :log "Starting Critical Mass services..."
+call :log "Starting Criticality Monitor services..."
 
 cd /d "%SCRIPT_DIR%"
 
@@ -89,7 +89,7 @@ goto :eof
 
 REM Stop all services
 :stop_services
-call :log "Stopping Critical Mass services..."
+call :log "Stopping Criticality Monitor services..."
 
 cd /d "%SCRIPT_DIR%"
 %COMPOSE_CMD% down
@@ -99,7 +99,7 @@ goto :eof
 
 REM Restart all services
 :restart_services
-call :log "Restarting Critical Mass services..."
+call :log "Restarting Criticality Monitor services..."
 call :stop_services
 timeout /t 2 /nobreak >nul
 call :start_services
@@ -132,7 +132,7 @@ goto :eof
 
 REM Update and rebuild services
 :update_services
-call :log "Updating Critical Mass services..."
+call :log "Updating Criticality Monitor services..."
 
 cd /d "%SCRIPT_DIR%"
 
@@ -154,7 +154,7 @@ goto :eof
 
 REM Show disk usage
 :show_disk_usage
-call :log "Disk usage for Critical Mass data:"
+call :log "Disk usage for Criticality Monitor data:"
 
 echo Log files:
 if exist "%PROJECT_DIR%\cm_logs" (
@@ -205,7 +205,7 @@ goto :eof
 
 REM Show help
 :show_help
-echo Critical Mass Server Management Script for Windows
+echo Criticality Monitor Server Management Script for Windows
 echo.
 echo Usage: %~nx0 ^<command^> [options]
 echo.

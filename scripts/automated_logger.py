@@ -2,7 +2,7 @@
 """
 Automated Location Logger Script
 
-This script continuously logs location data from the Critical Mass API.
+This script continuously logs location data from the Criticality Monitor API.
 
 Usage:
     python automated_logger.py [options]
@@ -218,7 +218,7 @@ class AutomatedLogger:
 def main():
     """Main entry point for the script."""
     parser = argparse.ArgumentParser(
-        description="Automated location logger for Critical Mass data",
+        description="Automated location logger for Criticality Monitor data",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

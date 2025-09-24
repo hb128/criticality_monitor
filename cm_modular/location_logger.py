@@ -1,7 +1,7 @@
 """
 Location Logger Module
 
-This module provides functionality to log locations from the Critical Mass API
+This module provides functionality to log locations from the Criticality Monitor API
 and create interactive maps with the logged position data.
 """
 
@@ -14,7 +14,7 @@ import os
 
 def load_locations() -> dict:
     """
-    Load location data from the Critical Mass API.
+    Load location data from the Criticality Monitor API.
     
     Returns:
         dict: JSON response containing location data

@@ -8,7 +8,7 @@ Buildef build_enhanced_site(
     maps_subdir: str = "maps",
     query: str = None,
     recent_limit: int = 30
-    ) -> None:nced Critical Mass website with header, metrics, leaderboard, and map.
+    ) -> None:nced Criticality Monitor website with header, metrics, leaderboard, and map.
 
 This creates a more sophisticated layout compared to build_site.py:
 - Professional header with city branding
@@ -47,7 +47,7 @@ def build_enhanced_site(
     query: str = None,
     recent_limit: int = 30
 ) -> None:
-    """Build an enhanced Critical Mass website from JSON state file."""
+    """Build an enhanced Criticality Monitor website from JSON state file."""
     
     data_path = Path(data_path)
     print(f"Building enhanced site from {data_path}")
@@ -132,7 +132,7 @@ def build_enhanced_site(
 
 def parse_args():
     """Parse command line arguments."""
-    p = argparse.ArgumentParser(description="Build an enhanced Critical Mass website.")
+    p = argparse.ArgumentParser(description="Build an enhanced Criticality Monitor website.")
     p.add_argument("data", help="Path to the JSON state file (results.json)")
     p.add_argument("--outdir", default="sites", help="Output directory (default: site)")
     p.add_argument("--city", default="Hamburg", help="City name (default: Hamburg)")

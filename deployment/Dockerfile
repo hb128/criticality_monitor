@@ -1,4 +1,4 @@
-# Multi-stage Python build for Critical Mass services
+# Multi-stage Python build for Criticality Monitor services
 FROM python:3.11-slim as base
 
 # Set working directory

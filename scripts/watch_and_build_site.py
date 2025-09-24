@@ -155,7 +155,7 @@ class SiteBuilder:
             build_enhanced_site(
                 data_path=combined_state_path,
                 outdir=main_output,
-                city="Critical Mass Global",
+                city="",
                 copy_maps=False,  # Don't copy individual maps
                 recent_limit=50
             )

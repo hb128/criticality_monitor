@@ -1,5 +1,5 @@
 """
-HTML templates and rendering for Critical Mass websites.
+HTML templates and rendering for Criticality Monitor websites.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def render_enhanced_html(
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Critical Mass {html.escape(city)}</title>
+    <title>	Criticality monitor {html.escape(city)}</title>
     <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -345,7 +345,8 @@ def render_enhanced_html(
     <div class="container">
         <!-- Hero Section -->
         <section class="hero">
-            <h1>Critical Mass {html.escape(city)}</h1>
+            <h1> Criticality monitor
+ {html.escape(city)}</h1>
         </section>
 
         <!-- Main Content - 2x2 Grid -->
@@ -372,10 +373,6 @@ def render_enhanced_html(
                             <div class="stat-card-value">{current_stats['max_length']:.0f}m</div>
                             <div class="stat-card-label">Max Length</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-card-value">{current_stats['latest_date']}</div>
-                            <div class="stat-card-label">Latest datapoint</div>
-                        </div>
                     </div>
                 </div>
 
@@ -383,7 +380,7 @@ def render_enhanced_html(
                 <div class="map-section grid-item">
                     <h2>Latest Route</h2>
                     <div class="map-container">
-                        <iframe id="latest-map" src="" title="Latest Critical Mass Route"></iframe>
+                        <iframe id="latest-map" src="" title="Latest Criticality Monitor Route"></iframe>
                     </div>
                 </div>
                 

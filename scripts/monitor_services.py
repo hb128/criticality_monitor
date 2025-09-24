@@ -2,7 +2,7 @@
 """
 Service Monitor Script
 
-Monitors the health and status of all Critical Mass services.
+Monitors the health and status of all Criticality Monitor services.
 Provides logging, alerting, and basic health checks.
 """
 
@@ -18,7 +18,7 @@ from typing import Dict, List, Optional
 
 
 class ServiceMonitor:
-    """Monitors Critical Mass services and logs their status."""
+    """Monitors Criticality Monitor services and logs their status."""
     
     def __init__(self, 
                  interval: int = 60,
@@ -223,7 +223,7 @@ class ServiceMonitor:
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Monitor Critical Mass services")
+    parser = argparse.ArgumentParser(description="Monitor Criticality Monitor services")
     
     parser.add_argument(
         "--interval",

@@ -1,12 +1,12 @@
-# Critical Mass Server Deployment
+# Criticality Monitor Server Deployment
 
-This directory contains everything needed to deploy and manage multiple Critical Mass services on a server.
+This directory contains everything needed to deploy and manage multiple Criticality Monitor services on a server.
 
 ## Overview
 
 The deployment architecture consists of:
 
-1. **automated-logger** - Continuously logs location data from the Critical Mass API
+1. **automated-logger** - Continuously logs location data from the Criticality Monitor API
 2. **batch-processor-hamburg** - Processes Hamburg log files through the pipeline
 3. **batch-processor-berlin** - Processes Berlin log files through the pipeline  
 4. **site-builder** - Builds enhanced websites from processed data
@@ -138,7 +138,7 @@ monitoring (watches all services)
 
 ### Data Flow
 
-1. **Location Logging**: `automated_logger.py` fetches location data from the Critical Mass API every 60 seconds and saves to `cm_logs/automated/`
+1. **Location Logging**: `automated_logger.py` fetches location data from the Criticality Monitor API every 60 seconds and saves to `cm_logs/automated/`
 
 2. **File Processing**: Each `watch_and_process.py` instance monitors its city's log directory and processes new files through the pipeline, generating:
    - Individual map HTML files
