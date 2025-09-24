@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """
-Build an enhanced Critical Mass website with header, metrics, leaderboard, and map.
+Buildef build_enhanced_site(
+    data_path: Union[Path, str],
+    outdir: Path,
+    city: str = "Hamburg",
+    copy_maps: bool = True,
+    maps_subdir: str = "maps",
+    query: str = None,
+    recent_limit: int = 30
+    ) -> None:nced Critical Mass website with header, metrics, leaderboard, and map.
 
 This creates a more sophisticated layout compared to build_site.py:
 - Professional header with city branding
 - Recent distances plot (time series)
-- Leaderboard of longest rides
+- Leaderboard of the city with the longest rides
 - Interactive map at the bottom
 - Responsive design
 """
@@ -23,7 +31,7 @@ import pandas as pd
 from cm_modular.website_utils import ensure_time_column, make_safe_filename
 from cm_modular.website_data import (
     prepare_recent_data,
-    prepare_leaderboard_data,
+    prepare_city_leaderboard_data,
     prepare_current_stats,
     prepare_plot_data,
 )
@@ -37,8 +45,7 @@ def build_enhanced_site(
     copy_maps: bool = True,
     maps_subdir: str = "maps",
     query: str = None,
-    recent_limit: int = 30,
-    leaderboard_limit: int = 10,
+    recent_limit: int = 30
 ) -> None:
     """Build an enhanced Critical Mass website from JSON state file."""
     
@@ -88,7 +95,9 @@ def build_enhanced_site(
     
     # Prepare data for templates
     recent_data = prepare_recent_data(df, recent_limit)
-    leaderboard_data = prepare_leaderboard_data(df, leaderboard_limit)
+    
+    leaderboard_data = prepare_city_leaderboard_data(df)
+    
     current_stats = prepare_current_stats(df)
     plot_data = prepare_plot_data(df, rel_links)
     
@@ -114,11 +123,10 @@ def parse_args():
     p.add_argument("data", help="Path to the JSON state file (results.json)")
     p.add_argument("--outdir", default="sites", help="Output directory (default: site)")
     p.add_argument("--city", default="Hamburg", help="City name (default: Hamburg)")
-    p.add_argument("--copy-maps", default=False, action="store_false", help="Don't copy map files")
+    p.add_argument("--copy-maps", default=False, action="store_true", help="Copy map files")
     p.add_argument("--maps-subdir", default="maps", help="Maps subdirectory (default: maps)")
     p.add_argument("--query", default=None, help="Pandas query to filter data")
     p.add_argument("--recent-limit", type=int, default=30, help="Number of recent rides for plot (default: 30)")
-    p.add_argument("--leaderboard-limit", type=int, default=10, help="Number of entries in leaderboard (default: 10)")
     return p.parse_args()
 
 
@@ -135,8 +143,7 @@ def main():
         copy_maps=args.copy_maps,
         maps_subdir=args.maps_subdir,
         query=args.query,
-        recent_limit=args.recent_limit,
-        leaderboard_limit=args.leaderboard_limit,
+        recent_limit=args.recent_limit
     )
 
 

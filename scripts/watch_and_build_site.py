@@ -145,20 +145,19 @@ class SiteBuilder:
                 'results': all_results
             }
             
-            combined_state_path = self.site_root / ".combined_state.json"
+            combined_state_path = self.site_root / "combined_state.json"
             with open(combined_state_path, 'w', encoding='utf-8') as f:
                 json.dump(combined_state, f, indent=2)
             
             # Build main site with combined data
-            main_output = self.site_root / "main"
+            main_output = self.site_root
             
             build_enhanced_site(
                 data_path=combined_state_path,
                 outdir=main_output,
                 city="Critical Mass Global",
                 copy_maps=True,  # Don't copy individual maps
-                recent_limit=50,
-                leaderboard_limit=20
+                recent_limit=50
             )
             
             print("Combined leaderboard site built successfully")

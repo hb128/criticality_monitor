@@ -35,33 +35,55 @@ def prepare_recent_data(df: pd.DataFrame, limit: int) -> dict:
     
     return {'records': records}
 
-
-def prepare_leaderboard_data(df: pd.DataFrame, limit: int) -> dict:
-    """Prepare leaderboard of longest rides."""
-    if 'length_m' not in df.columns:
+def prepare_city_leaderboard_data(combined_df: pd.DataFrame, limit: int = 10) -> dict:
+    """Prepare leaderboard of cities by their most recent longest route."""
+    if combined_df.empty or 'city' not in combined_df.columns:
         return {'records': []}
     
-    leaderboard = df.nlargest(limit, 'length_m')
-    records = []
+    city_records = []
     
-    for rank, (_, row) in enumerate(leaderboard.iterrows(), 1):
+    # Group by city and get the most recent data for each city
+    for city in combined_df['city'].unique():
+        city_df = combined_df[combined_df['city'] == city]
+        
+        if city_df.empty:
+            continue
+            
+        # Sort by timestamp to get most recent data
+        if 't' in city_df.columns:
+            city_df_sorted = city_df.dropna(subset=['t']).sort_values('t')
+            if not city_df_sorted.empty:
+                latest_data = city_df_sorted.iloc[-1]
+            else:
+                latest_data = city_df.iloc[-1]  # Fallback to last row
+        else:
+            latest_data = city_df.iloc[-1]  # Use last row if no timestamp
+        
         # Handle date conversion safely
         date_str = 'Unknown'
-        if 't' in row and pd.notna(row['t']):
+        if 't' in latest_data and pd.notna(latest_data['t']):
             try:
-                date_str = pd.to_datetime(row['t']).strftime('%d.%m.%Y')
+                date_str = pd.to_datetime(latest_data['t']).strftime('%d.%m.%Y')
             except:
                 date_str = 'Unknown'
         
-        record = {
-            'rank': rank,
-            'length_m': float(row['length_m']) if pd.notna(row['length_m']) else 0,
+        city_record = {
+            'city': str(city),
+            'length_m': float(latest_data.get('length_m', 0)) if pd.notna(latest_data.get('length_m')) else 0,
             'date': date_str,
-            'participants': int(row.get('n_filtered', 0)) if 'n_filtered' in row and pd.notna(row.get('n_filtered')) else None,
+            'participants': int(latest_data.get('n_filtered', 0)) if 'n_filtered' in latest_data and pd.notna(latest_data.get('n_filtered')) else None,
         }
-        records.append(record)
+        city_records.append(city_record)
     
-    return {'records': records}
+    # Sort cities by length (descending) and take top N
+    city_records.sort(key=lambda x: x['length_m'], reverse=True)
+    city_records = city_records[:limit]
+    
+    # Add ranking
+    for rank, record in enumerate(city_records, 1):
+        record['rank'] = rank
+    
+    return {'records': city_records}
 
 
 def prepare_current_stats(df: pd.DataFrame) -> dict:

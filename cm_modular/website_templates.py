@@ -190,6 +190,13 @@ def render_enhanced_html(
             font-size: 0.8rem;
         }}
         
+        .city-name {{ 
+            font-weight: 500; 
+            color: #3498db;
+            font-size: 0.75rem;
+            text-transform: capitalize;
+        }}
+        
         .date {{ 
             font-size: 0.8rem; 
             color: #7f8c8d;
@@ -452,10 +459,13 @@ def render_enhanced_html(
             DATA.leaderboard.records.forEach(record => {{
                 const item = document.createElement('div');
                 item.className = 'leaderboard-item';
+                
+                // City leaderboard
                 item.innerHTML = `
                     <div class="rank">#${{record.rank}}</div>
                     <div>
                         <div class="distance">${{record.length_m.toFixed(0)}}m</div>
+                        <div class="city-name">${{record.city}}</div>
                         <div class="date">${{record.date}}</div>
                     </div>
                 `;
