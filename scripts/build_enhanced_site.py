@@ -92,6 +92,19 @@ def build_enhanced_site(
                 
                 # Store relative link for website
                 rel_links.append(f"{maps_subdir}/{filename}")
+    elif 'html' in df.columns:
+        # When not copying maps, create relative links to original files
+        for i, row in df.iterrows():
+            html_path = row.get('html')
+            if pd.notna(html_path) and Path(html_path).exists():
+                src_path = Path(html_path)
+                # Create relative path from output directory to the original HTML file
+                try:
+                    rel_path = src_path.relative_to(outdir)
+                    rel_links.append(str(rel_path).replace('\\', '/'))
+                except ValueError:
+                    # If relative path can't be computed, use absolute path as fallback
+                    rel_links.append(f"file://{src_path.as_posix()}")
     
     # Prepare data for templates
     recent_data = prepare_recent_data(df, recent_limit)
