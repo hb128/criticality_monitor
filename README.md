@@ -38,7 +38,7 @@ python -m scripts.automated_logger --log-dir test_deployment/logs --debug-source
 
 Analysis:
 ```bash
-python -m scripts.watch_and_process  --interval 1 --watch-dir test_deployment/logs/ --output-dir test_deployment/analysis --city Hamburg
+python -m scripts.watch_and_process  --interval 1 --watch-dir test_deployment/logs/ --output-dir test_deployment --city Hamburg
 ```
 
 Website:
