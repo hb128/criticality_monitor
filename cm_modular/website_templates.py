@@ -485,5 +485,80 @@ def render_enhanced_html(
             }}
         }}
     </script>
+    <!-- Automatic reload if underlying HTML file changes.
+         Disable via adding ?autoreload=off to the URL. -->
+    <script>
+        (function() {{
+            const AUTO_RELOAD_INTERVAL = 5000; // ms
+            const DISABLED = /(?:\?|&)autoreload=off\b/i.test(window.location.search);
+            if (DISABLED) {{
+                console.log('[auto-reload] disabled via query param');
+                return;
+            }}
+
+            let baselineSignature = null;
+            let consecutiveHeadFailures = 0;
+
+            async function headProbe(url) {{
+                try {{
+                    const resp = await fetch(url, {{ method: 'HEAD', cache: 'no-store' }});
+                    const sig = [
+                        'lm:' + (resp.headers.get('Last-Modified') || ''),
+                        'etag:' + (resp.headers.get('ETag') || ''),
+                        'len:' + (resp.headers.get('Content-Length') || '')
+                    ].join('|');
+                    consecutiveHeadFailures = 0;
+                    return sig;
+                }} catch (e) {{
+                    consecutiveHeadFailures += 1;
+                    return null;
+                }}
+            }}
+
+            async function fullProbe(url) {{
+                // Fallback: GET and hash body (lightweight hash)
+                try {{
+                    const resp = await fetch(url, {{ method: 'GET', cache: 'no-store' }});
+                    const text = await resp.text();
+                    let hash = 0;
+                    for (let i = 0; i < text.length; i++) {{
+                        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+                        hash |= 0;
+                    }}
+                    return 'bodyhash:' + hash;
+                }} catch (e) {{
+                    return null;
+                }}
+            }}
+
+            async function probe() {{
+                const baseUrl = window.location.href.split('#')[0].replace(/([?&])nocache=\d+/, '$1');
+                const cacheBustUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'nocache=' + Date.now();
+
+                // Prefer HEAD; fallback to full GET if repeated failures
+                let sig = await headProbe(cacheBustUrl);
+                if (!sig && consecutiveHeadFailures >= 2) {{
+                    sig = await fullProbe(cacheBustUrl);
+                }}
+                if (sig) {{
+                    if (baselineSignature && baselineSignature !== sig) {{
+                        console.log('[auto-reload] change detected; reloading page');
+                        window.location.reload();
+                        return; // stop further scheduling; reload imminent
+                    }}
+                    if (!baselineSignature) {{
+                        baselineSignature = sig;
+                        console.log('[auto-reload] baseline set');
+                    }}
+                }} else {{
+                    console.log('[auto-reload] probe failed');
+                }}
+                setTimeout(probe, AUTO_RELOAD_INTERVAL);
+            }}
+
+            // Kick off after small delay to avoid competing with initial resource loads
+            setTimeout(probe, 2500);
+        }})();
+    </script>
 </body>
 </html>"""
