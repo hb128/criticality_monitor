@@ -90,6 +90,66 @@ class Pipeline:
         # bbox filter
         hh = DataFilter.bbox(df, self.cfg.lat_min, self.cfg.lat_max, self.cfg.lon_min, self.cfg.lon_max)
 
+        # ------------------------------------------------------------------
+        # Early exit for small sample sizes BEFORE KNN filtering / graphing.
+        # If fewer than 10 points in bbox, skip KNN + graph to avoid
+        # unstable computations and just return placeholders.
+        # Treat all remaining points as 'filtered' with a single cluster.
+        # ------------------------------------------------------------------
+        if len(hh) < 10:
+            print(f"Points in bbox: {len(hh)}")
+            n = len(hh)
+            hh = hh.copy()
+            hh["keep"] = True  # mark all as kept for consistency
+            filtered = hh.copy().reset_index(drop=True)
+            outliers = hh.iloc[0:0].copy().reset_index(drop=True)
+            # Geometry
+            if n > 0:
+                x_f, y_f = GeoUtils.deg2meters(filtered["lat"].values, filtered["lon"].values)
+            else:
+                x_f = np.array([])
+                y_f = np.array([])
+            D_f = np.zeros((n, n), dtype=float)
+            adj = np.zeros((n, n), dtype=int)
+            radius_m = 0.0
+            if n > 0:
+                comps = [list(range(n))]
+                sizes = np.array([n])
+                order = [0]
+                cluster_id = np.zeros(n, dtype=int)
+                filtered = filtered.copy()
+                filtered["cluster"] = cluster_id
+            else:
+                comps = []
+                sizes = np.array([])
+                order = []
+                cluster_id = np.array([])
+            path_indices: list[int] = []
+            start_idx = None
+            end_idx = None
+            length_m = 0.0
+            router = None
+            return {
+                "df": df,
+                "hh": hh,
+                "filtered": filtered,
+                "outliers": outliers,
+                "x_f": x_f,
+                "y_f": y_f,
+                "D_f": D_f,
+                "adj": adj,
+                "radius_m": radius_m,
+                "comps": comps,
+                "sizes": sizes,
+                "order": order,
+                "cluster_id": cluster_id,
+                "path_indices": path_indices,
+                "start_idx": start_idx,
+                "end_idx": end_idx,
+                "length_m": length_m,
+                "router": router,
+            }
+
         # base geometry + KNN filter
         x, y = GeoUtils.deg2meters(hh["lat"].values, hh["lon"].values)
         D = GeoUtils.pairwise_xy(x, y)
@@ -98,6 +158,7 @@ class Pipeline:
         hh["keep"] = keep
         filtered = hh[hh["keep"]].copy().reset_index(drop=True)
         outliers = hh[~hh["keep"]].copy().reset_index(drop=True)
+
 
         # graph on filtered
         x_f, y_f = GeoUtils.deg2meters(filtered["lat"].values, filtered["lon"].values)

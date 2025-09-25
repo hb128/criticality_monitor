@@ -4,13 +4,39 @@ Data preparation functions for website content.
 from __future__ import annotations
 
 from typing import List
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import numpy as np
 
 
+BERLIN_TZ = ZoneInfo("Europe/Berlin")
+UTC_TZ = ZoneInfo("UTC")
+
+
+def _to_berlin(dt_val):
+    """Convert a datetime-like value to Europe/Berlin timezone.
+
+    Assumptions:
+      - Naive datetime or parseable string is interpreted as UTC (as filenames / data originate in UTC)
+      - If tz-aware, it's converted to Berlin.
+    Returns a timezone-aware datetime in Europe/Berlin, or None on failure.
+    """
+    if pd.isna(dt_val):
+        return None
+    try:
+        dt = pd.to_datetime(dt_val, utc=True)  # ensure result is tz-aware UTC
+        # pandas may already localize if tz info present; enforce conversion to UTC first
+        if getattr(dt, 'tzinfo', None) is None:
+            # localize as UTC explicitly (shouldn't happen due to utc=True, but safety)
+            dt = dt.tz_localize(UTC_TZ)  # type: ignore[attr-defined]
+        return dt.tz_convert(BERLIN_TZ)
+    except Exception:
+        return None
+
+
 def prepare_recent_data(df: pd.DataFrame, limit: int) -> dict:
-    """Prepare recent rides data for display."""
+    """Prepare recent rides data for display (dates shown in Europe/Berlin local time)."""
     if df.empty:
         return {'records': []}
     
@@ -21,10 +47,9 @@ def prepare_recent_data(df: pd.DataFrame, limit: int) -> dict:
         # Handle date conversion safely
         date_str = 'Unknown'
         if 't' in row and pd.notna(row['t']):
-            try:
-                date_str = pd.to_datetime(row['t']).strftime('%d.%m.%Y')
-            except:
-                date_str = 'Unknown'
+            local_dt = _to_berlin(row['t'])
+            if local_dt is not None:
+                date_str = local_dt.strftime('%d.%m.%Y')
         
         record = {
             'length_m': float(row.get('length_m', 0)) if pd.notna(row.get('length_m')) else 0,
@@ -37,7 +62,7 @@ def prepare_recent_data(df: pd.DataFrame, limit: int) -> dict:
     return {'records': records}
 
 def prepare_city_leaderboard_data(combined_df: pd.DataFrame, limit: int = 10) -> dict:
-    """Prepare leaderboard of cities by their most recent longest route."""
+    """Prepare leaderboard of cities by their most recent longest route (dates in Berlin time)."""
     if combined_df.empty or 'city' not in combined_df.columns:
         return {'records': []}
     
@@ -63,10 +88,9 @@ def prepare_city_leaderboard_data(combined_df: pd.DataFrame, limit: int = 10) ->
         # Handle date conversion safely
         date_str = 'Unknown'
         if 't' in latest_data and pd.notna(latest_data['t']):
-            try:
-                date_str = pd.to_datetime(latest_data['t']).strftime('%d.%m.%Y')
-            except:
-                date_str = 'Unknown'
+            local_dt = _to_berlin(latest_data['t'])
+            if local_dt is not None:
+                date_str = local_dt.strftime('%d.%m.%Y')
         
         city_record = {
             'city': str(city),
@@ -88,7 +112,7 @@ def prepare_city_leaderboard_data(combined_df: pd.DataFrame, limit: int = 10) ->
 
 
 def prepare_current_stats(df: pd.DataFrame) -> dict:
-    """Prepare current statistics."""
+    """Prepare current statistics (timestamps shown in Berlin time)."""
     if df.empty:
         return {
             'total_rides': 0,
@@ -103,10 +127,9 @@ def prepare_current_stats(df: pd.DataFrame) -> dict:
     # Handle timestamp conversion safely
     latest_date_str = 'Unknown'
     if 't' in latest and pd.notna(latest['t']):
-        try:
-            latest_date_str = pd.to_datetime(latest['t']).strftime('%d.%m.%Y - %H:%M')
-        except:
-            latest_date_str = 'Unknown'
+        local_dt = _to_berlin(latest['t'])
+        if local_dt is not None:
+            latest_date_str = local_dt.strftime('%d.%m.%Y - %H:%M')
     
     return {
         'n_filtered': int(latest.get('n_filtered')),
@@ -117,7 +140,11 @@ def prepare_current_stats(df: pd.DataFrame) -> dict:
 
 
 def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot = 120) -> dict:
-    """Prepare data for time series plot."""
+    """Prepare data for time series plot.
+
+    All timestamps returned in 'x' are converted to Europe/Berlin timezone (ISO 8601 with offset),
+    while filtering assumes original 't' values are in UTC (filename-origin timestamps).
+    """
     if df.empty or 't' not in df.columns:
         return {'x': [], 'y': [], 'links': [], 'cities': []}
     
@@ -125,16 +152,15 @@ def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot =
     valid_df = df[df['t'].notna()].copy()
     
     if not valid_df.empty:
-        # Convert timestamps to datetime if they aren't already
-        valid_df['t'] = pd.to_datetime(valid_df['t'])
-        
+        # Convert timestamps to datetime (assumed UTC) then convert to Berlin
+        valid_df['t'] = pd.to_datetime(valid_df['t'], utc=True).dt.tz_convert(BERLIN_TZ)
+
         # Get the latest timestamp and filter to last max_minutes_plot minutes
         latest_time = valid_df['t'].max()
         first_plot_time = latest_time - pd.Timedelta(minutes=max_minutes_plot)
         valid_df = valid_df[valid_df['t'] >= first_plot_time]
-        
+
         # Adjust rel_links to match the filtered data
-        # We need to find the original indices to map the links correctly
         original_indices = valid_df.index.tolist()
         filtered_links = [rel_links[i] if i < len(rel_links) else '' for i in original_indices] if rel_links else []
     else:
@@ -144,7 +170,7 @@ def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot =
     cities = [str(city) if pd.notna(city) else 'Unknown' for city in valid_df.get('city', ['Unknown'] * len(valid_df))]
     
     return {
-        'x': [t.isoformat() if pd.notna(t) else None for t in valid_df['t']],
+        'x': [t.isoformat() if pd.notna(t) else None for t in valid_df['t']],  # already Berlin tz-aware
         'y': [float(d) if pd.notna(d) else 0 for d in valid_df.get('length_m', [])],
         'links': filtered_links,
         'cities': cities

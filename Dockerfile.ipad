@@ -1,0 +1,34 @@
+FROM python:3.11-bullseye
+
+# Dedicated Dockerfile for the ipad_render service.
+# Installs Playwright Chromium browsers in a shared path accessible to the non-root user.
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# 1. Install Python deps
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# 2. Install Playwright browser binaries (Chromium only) + system deps into shared path
+RUN mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" \
+    && chmod 755 "$PLAYWRIGHT_BROWSERS_PATH" \
+    && python -m playwright install --with-deps chromium
+
+# 3. Copy application code
+COPY cm_modular/ ./cm_modular/
+COPY scripts/ ./scripts/
+
+# 4. Create non-root user and adjust ownership
+RUN adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app "$PLAYWRIGHT_BROWSERS_PATH"
+
+USER appuser
+ENV PYTHONPATH=/app
+
+# The actual command is supplied via docker-compose. Keep a harmless default.
+CMD ["python", "--version"]

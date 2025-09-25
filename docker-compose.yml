@@ -1,0 +1,88 @@
+services:
+  # Automated location logger - runs continuously
+  automated-logger:
+    build: .
+    container_name: automated-logger
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/automated_logger.py --interval 10 --log-dir /app/site/logs --verbose
+    user: "1000:1000"
+
+  # Batch processor for city 1 (Hamburg)
+  batch-processor-hamburg:
+    build: .
+    container_name: batch-processor-hamburg
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./site:/app/site
+      - ./config:/app/config
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_process.py --city hamburg --watch-dir /app/site/logs --output-dir /app/site
+    depends_on:
+      - automated-logger
+    user: "1000:1000"
+
+  # Batch processor for city 2 (Berlin)
+  batch-processor-berlin:
+    build: .
+    container_name: batch-processor-berlin
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./site:/app/site
+      - ./config:/app/config
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_process.py --city berlin --watch-dir /app/site/logs --output-dir /app/site
+    depends_on:
+      - automated-logger
+    user: "1000:1000"
+
+  # Enhanced site builder - processes results and builds websites
+  watch_and_build_site:
+    build: .
+    container_name: watch_and_build_site
+    restart: unless-stopped
+    volumes:
+      - ./site:/app/site
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_build_site.py --interval 1 --primary-city hamburg
+    depends_on:
+      - batch-processor-hamburg
+      - batch-processor-berlin
+    user: "1000:1000"
+
+  # Web server to serve the generated sites
+  web-server:
+    image: nginx:alpine
+    container_name: web-server
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - watch_and_build_site
+
+  # iPad renderer - watches generated site index.html and produces ipad_render.html + screenshot
+  ipad-render:
+    build:
+      context: .
+      dockerfile: Dockerfile.ipad
+    container_name: ipad-render
+    restart: unless-stopped
+    depends_on:
+      - watch_and_build_site
+    volumes:
+      - ./site:/app/site
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/ipad_render.py /app/site/index.html --out /app/site --wrapper-name ipad_render.html --watch --interval 3
+    user: "1000:1000"
