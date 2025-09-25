@@ -13,7 +13,7 @@ services:
       - LOG_LEVEL=INFO
       - LOG_DIR=/app/cm_logs/automated
       - INTERVAL=15
-    command: python scripts/automated_logger.py --interval ${INTERVAL:-60} --log-dir ${LOG_DIR:-cm_logs/automated} --verbose
+    command: python scripts/automated_logger.py --interval ${INTERVAL:-60} --log-dir ${LOG_DIR:-cm_logs} --verbose
     healthcheck:
       test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cm_logs/automated') else 1)"]
       interval: 300s
@@ -39,7 +39,7 @@ services:
       - OUTPUT_DIR=/app/site/hamburg
       - CITY=hamburg
       - WORKERS=2
-    command: python scripts/watch_and_process.py --city hamburg --watch-dir /app/cm_logs/hamburg --output-dir /app/site/hamburg --workers 2
+    command: python scripts/watch_and_process.py --city hamburg --watch-dir /app/cm_logs --output-dir /app/site/hamburg --workers 2
     depends_on:
       - automated-logger
     logging:
@@ -58,11 +58,11 @@ services:
       - ./site:/app/site
       - ./config:/app/config
     environment:
-      - WATCH_DIR=/app/cm_logs/berlin
-      - OUTPUT_DIR=/app/site/berlin
+      - WATCH_DIR=/app/cm_logs
+      - OUTPUT_DIR=/app/site
       - CITY=berlin
       - WORKERS=2
-    command: python scripts/watch_and_process.py --city berlin --watch-dir /app/cm_logs/berlin --output-dir /app/site/berlin --workers 2
+    command: python scripts/watch_and_process.py --city berlin --watch-dir /app/cm_logs --output-dir /app/site --workers 2
     depends_on:
       - automated-logger
     logging:
