@@ -89,28 +89,6 @@ class SiteBuilder:
             print(f"Error reading state file {state_path}: {e}")
             return []
     
-    def build_city_site(self, city: str, state_path: Path):
-        """Build enhanced site for a specific city."""
-        try:
-            output_dir = self.site_root / city
-            
-            print(f"Building site for {city}...")
-            
-            # Use the JSON state file directly
-            build_enhanced_site(
-                data_path=state_path,
-                outdir=output_dir,
-                city=city.title(),
-                copy_maps=False,
-                maps_subdir="maps",
-                recent_limit=30
-            )
-            
-            print(f"Site built successfully for {city}")
-            
-        except Exception as e:
-            print(f"Error building site for {city}: {e}")
-    
     def build_combined_leaderboard(self, state_files: Dict[str, Path]):
         """Build a combined leaderboard across all cities."""
         try:
@@ -155,7 +133,8 @@ class SiteBuilder:
             build_enhanced_site(
                 data_path=combined_state_path,
                 outdir=main_output,
-                city="",
+                # Use the configured primary city instead of hardcoding
+                city=self.primary_city,
                 copy_maps=False,  # Don't copy individual maps
                 recent_limit=50
             )
@@ -182,10 +161,6 @@ class SiteBuilder:
                 
                 if updated_cities:
                     print(f"[{datetime.now()}] Updates detected for: {', '.join(updated_cities)}")
-                    
-                    # Build individual city sites
-                    for city in updated_cities:
-                        self.build_city_site(city, state_files[city])
                     
                     # Build combined leaderboard
                     self.build_combined_leaderboard(state_files)

@@ -28,10 +28,11 @@ def render_enhanced_html(
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>	Criticality monitor {html.escape(city)}</title>
+    <title>	Criticality monitor for {html.escape(city)}</title>
     <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        :root {{ --primary-city-color: #e74c3c; }}
         body {{ 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
             line-height: 1.6; 
@@ -192,7 +193,7 @@ def render_enhanced_html(
         .stat-card-value {{
             font-size: 1.8rem;
             font-weight: 700;
-            color: #e74c3c;
+            color: var(--primary-city-color);
             margin-bottom: 3px;
             line-height: 1;
         }}
@@ -324,7 +325,8 @@ def render_enhanced_html(
         if (DATA.plot && DATA.plot.x.length > 0) {{
             // Group data by city
             const cityData = {{}};
-            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+            // Exclude reserved Hamburg red from rotation; we'll assign it explicitly
+            const colors = ['#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
             let colorIndex = 0;
             // Expose mapping so leaderboard & other UI parts can use consistent colors
             window.CITY_COLORS = window.CITY_COLORS || {{}};
@@ -333,14 +335,16 @@ def render_enhanced_html(
             for (let i = 0; i < DATA.plot.x.length; i++) {{
                 const city = DATA.plot.cities ? DATA.plot.cities[i] : 'Unknown';
                 if (!cityData[city]) {{
+                    const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-city-color').trim() || '#e74c3c';
+                    const assignedColor = (city.toLowerCase() == 'hamburg') ? primary : colors[colorIndex % colors.length];
                     cityData[city] = {{
                         x: [],
                         y: [],
                         links: [],
-                        color: colors[colorIndex % colors.length]
+                        color: assignedColor
                     }};
-                    window.CITY_COLORS[city] = cityData[city].color;
-                    colorIndex++;
+                    window.CITY_COLORS[city] = assignedColor;
+                    if (city.toLowerCase() != 'hamburg') colorIndex++;
                 }}
                 cityData[city].x.push(DATA.plot.x[i]);
                 cityData[city].y.push(DATA.plot.y[i]);
