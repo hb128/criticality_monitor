@@ -14,6 +14,7 @@ import argparse
 import pathlib
 import sys
 import time
+from typing import Optional
 
 try:
     from playwright.sync_api import sync_playwright
@@ -29,7 +30,7 @@ def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
                        user_agent: str = None, timeout: int = 30000):
     out_dir.mkdir(parents=True, exist_ok=True)
     screenshot_path = out_dir / "screenshot.png"
-    wrapper_path = out_dir / "index.html"
+    wrapper_path = out_dir / "ipad.html"
 
     # Resolve file:// URL for local file loading
     url = input_html.resolve().as_uri()
@@ -66,6 +67,7 @@ def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="10">
   <title>Rendered screenshot</title>
   <style>
     html,body{{height:100%;margin:0;background:#fff;}}
@@ -89,32 +91,119 @@ def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
 
 def parse_args():
     p = argparse.ArgumentParser(description="Render HTML -> PNG and generate simple HTML wrapper.")
-    p.add_argument("input", help="Path to input HTML file")
+    p.add_argument("input", help="Path to input HTML file (will be watched if --watch is used)")
     p.add_argument("--out", "-o", default="out", help="Output directory (will be created)")
-    p.add_argument("--width", type=int, default=768, help="CSS viewport width (default 768, iPad3 logical width)")
-    p.add_argument("--height", type=int, default=1024, help="CSS viewport height (default 1024)")
+    p.add_argument("--width", type=int, default=1024, help="CSS viewport width (default 768, iPad3 logical width)")
+    p.add_argument("--height", type=int, default=768, help="CSS viewport height (default 1024)")
     p.add_argument("--dpr", type=int, default=2, help="devicePixelRatio (default 2 for Retina)")
     p.add_argument("--fullpage", action="store_true", help="Capture full page (may produce a tall image)")
     p.add_argument("--wait-for", help="Optional CSS selector to wait for before screenshot")
     p.add_argument("--user-agent", help="Override user agent string")
     p.add_argument("--timeout", type=int, default=30000, help="Navigation timeout in ms")
+
+    # Watch mode additions
+    p.add_argument("--watch", action="store_true", help="Continuously watch the input file and re-render on changes")
+    p.add_argument("--interval", type=float, default=5.0, help="Polling interval seconds for watch mode (default 5.0)")
+    p.add_argument("--settle", type=float, default=0.2, help="Settling delay seconds after change detected before rendering (default 0.2)")
+    p.add_argument("--quiet", action="store_true", help="Reduce log verbosity in watch mode")
     return p.parse_args()
+
+
+def watch_and_render(input_path: pathlib.Path, *,
+                     render_kwargs: dict,
+                     interval: float = 5.0,
+                     settle: float = 0.2,
+                     quiet: bool = False):
+    """Watch the given file; when it appears or changes, re-render.
+
+    Parameters:
+        input_path: Path to HTML file to watch.
+        render_kwargs: kwargs passed to render_html_to_png (excluding input/out_dir)
+        interval: seconds between polling checks
+        settle: delay after detecting modification before reading (lets writer finish)
+        quiet: reduce logging noise
+    """
+    last_mtime: Optional[float] = None
+    last_result = None
+    printed_waiting = False
+    try:
+        while True:
+            if not input_path.exists():
+                if not printed_waiting and not quiet:
+                    print(f"[watch] Waiting for file to appear: {input_path}")
+                    printed_waiting = True
+                time.sleep(interval)
+                continue
+            printed_waiting = False
+            try:
+                mtime = input_path.stat().st_mtime
+            except FileNotFoundError:
+                # Race: file removed between exists() and stat()
+                time.sleep(interval)
+                continue
+
+            if last_mtime is None or mtime > last_mtime + 1e-6:
+                if not quiet:
+                    if last_mtime is None:
+                        print(f"[watch] Detected initial file. Rendering {input_path} ...")
+                    else:
+                        print(f"[watch] Change detected (mtime {mtime}); re-rendering ...")
+                time.sleep(settle)  # allow writer to finish
+                try:
+                    screenshot, wrapper = render_html_to_png(
+                        input_html=input_path,
+                        **render_kwargs
+                    )
+                    last_result = (screenshot, wrapper)
+                    last_mtime = mtime
+                    if not quiet:
+                        print(f"[watch] Render complete @ {time.strftime('%H:%M:%S')} -> {wrapper}")
+                except Exception as e:
+                    print(f"[watch] Render failed: {e}")
+                    # keep last_mtime so we'll retry upon *next* modification
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        if not quiet:
+            print("\n[watch] Stopped by user (Ctrl+C)")
+    return last_result
 
 def main():
     args = parse_args()
     input_path = pathlib.Path(args.input)
     out_dir = pathlib.Path(args.out)
 
+    render_kwargs = dict(
+        out_dir=out_dir,
+        width=args.width,
+        height=args.height,
+        dpr=args.dpr,
+        full_page=args.fullpage,
+        wait_for=args.wait_for,
+        user_agent=args.user_agent,
+        timeout=args.timeout,
+    )
+
+    if args.watch:
+        # In watch mode we don't bail out if file is missing initially.
+        print(f"[watch] Starting watch on {input_path} (interval={args.interval}s)")
+        watch_and_render(
+            input_path,
+            render_kwargs=render_kwargs,
+            interval=args.interval,
+            settle=args.settle,
+            quiet=args.quiet,
+        )
+        return
+
     if not input_path.exists():
         print(f"Error: input file not found: {input_path}")
         sys.exit(2)
 
     print("Rendering...")
-    screenshot, wrapper = render_html_to_png(input_path, out_dir,
-                                            width=args.width, height=args.height,
-                                            dpr=args.dpr, full_page=args.fullpage,
-                                            wait_for=args.wait_for, user_agent=args.user_agent,
-                                            timeout=args.timeout)
+    screenshot, wrapper = render_html_to_png(
+        input_html=input_path,
+        **render_kwargs
+    )
     print("\nDone.")
     print("To serve the output folder on your local network (Windows):")
     print(f"  1) Open a PowerShell/CMD prompt in {out_dir.resolve()}")
