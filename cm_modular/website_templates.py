@@ -60,7 +60,7 @@ def render_enhanced_html(
         .content-grid {{
             display: grid;
             grid-template-columns: 48% 52%;
-            grid-template-rows: 50% 50%;
+            grid-template-rows: auto auto;
             grid-template-areas: 
                 "chart map"
                 "info  map";
@@ -326,6 +326,8 @@ def render_enhanced_html(
             const cityData = {{}};
             const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
             let colorIndex = 0;
+            // Expose mapping so leaderboard & other UI parts can use consistent colors
+            window.CITY_COLORS = window.CITY_COLORS || {{}};
             
             // Group points by city
             for (let i = 0; i < DATA.plot.x.length; i++) {{
@@ -337,6 +339,7 @@ def render_enhanced_html(
                         links: [],
                         color: colors[colorIndex % colors.length]
                     }};
+                    window.CITY_COLORS[city] = cityData[city].color;
                     colorIndex++;
                 }}
                 cityData[city].x.push(DATA.plot.x[i]);
@@ -361,13 +364,20 @@ def render_enhanced_html(
                 customdata: cityData[city].links
             }}));
 
-            // Expose city -> color mapping globally for leaderboard styling
-            window.CITY_COLORS = {{}};
-            Object.keys(cityData).forEach(c => {{ window.CITY_COLORS[c] = cityData[c].color; }});
+            // Compute dynamic y-axis upper bound (+5%)
+            let yMax = 0;
+            traces.forEach(t => {{
+                const localMax = Math.max(...t.y);
+                if (localMax > yMax) yMax = localMax;
+            }});
+            const yUpper = yMax > 0 ? yMax * 1.05 : 1;
 
             const layout = {{
                 xaxis: {{ title: 'Date' }},
-                yaxis: {{ title: 'Distance (meters)' }},
+                yaxis: {{ 
+                    title: 'Distance (meters)',
+                    range: [0, yUpper]   // 0 to max + 5%
+                }},
                 margin: {{ l: 60, r: 20, t: 40, b: 60 }},
                 plot_bgcolor: 'rgba(0,0,0,0)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
@@ -396,12 +406,38 @@ def render_enhanced_html(
             }});
             
             // Handle chart hover - show map of hovered datapoint
-            document.getElementById('chart').on('plotly_hover', function(data) {{
-                const mapUrl = data.points[0].customdata;
+            let hoverMapUpdateTimer = null;
+            const chartEl = document.getElementById('chart');
+            chartEl.on('plotly_hover', function(data) {{
+                const pt = data.points[0];
+                const mapUrl = pt.customdata;
+                const hoverCity = pt.data.name;
                 const mapFrame = document.getElementById('latest-map');
-                if (mapUrl && mapFrame) {{
-                    mapFrame.src = mapUrl;
-                }}
+                if (hoverMapUpdateTimer) {{ clearTimeout(hoverMapUpdateTimer); }}
+                hoverMapUpdateTimer = setTimeout(() => {{
+                    if (mapUrl && mapFrame) {{
+                        if (mapFrame.src !== mapUrl) mapFrame.src = mapUrl;
+                    }}
+                }}, 80); // small debounce to avoid rapid iframe reloads
+
+                // Highlight leaderboard entries for this city
+                document.querySelectorAll('#leaderboard-list .leaderboard-item').forEach(el => {{
+                    if (el.dataset.city === hoverCity) {{
+                        el.style.outline = `2px solid ${{window.CITY_COLORS[hoverCity] || '#333'}}`;
+                        el.style.background = 'rgba(255,255,255,0.95)';
+                    }} else {{
+                        el.style.outline = 'none';
+                        el.style.background = 'white';
+                    }}
+                }});
+            }});
+
+            chartEl.on('plotly_unhover', function() {{
+                // Remove highlights
+                document.querySelectorAll('#leaderboard-list .leaderboard-item').forEach(el => {{
+                    el.style.outline = 'none';
+                    el.style.background = 'white';
+                }});
             }});
         }}
 
@@ -415,6 +451,7 @@ def render_enhanced_html(
                 const cityColor = (window.CITY_COLORS && window.CITY_COLORS[record.city]) || '#3498db';
                 
                 // City leaderboard
+                item.dataset.city = record.city;
                 item.innerHTML = `
                     <div class="rank" style="color:${{cityColor}}">#${{record.rank}}</div>
                     <div class="city-name" style="color:${{cityColor}}">${{record.city}}</div>
