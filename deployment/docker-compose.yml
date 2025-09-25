@@ -9,13 +9,9 @@ services:
     volumes:
       - ./cm_logs:/app/cm_logs
       - ./config:/app/config
-    environment:
-      - LOG_LEVEL=INFO
-      - LOG_DIR=/app/cm_logs/automated
-      - INTERVAL=15
-    command: python scripts/automated_logger.py --interval ${INTERVAL:-60} --log-dir ${LOG_DIR:-cm_logs} --verbose
+    command: python scripts/automated_logger.py --interval 15 --log-dir cm_logs --verbose
     healthcheck:
-      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cm_logs/automated') else 1)"]
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cm_logs') else 1)"]
       interval: 300s
       timeout: 10s
       retries: 3
@@ -34,12 +30,7 @@ services:
       - ./cm_logs:/app/cm_logs
       - ./site:/app/site
       - ./config:/app/config
-    environment:
-      - WATCH_DIR=/app/cm_logs/hamburg
-      - OUTPUT_DIR=/app/site/hamburg
-      - CITY=hamburg
-      - WORKERS=2
-    command: python scripts/watch_and_process.py --city hamburg --watch-dir /app/cm_logs --output-dir /app/site/hamburg --workers 2
+    command: python scripts/watch_and_process.py --city hamburg --watch-dir /app/cm_logs --output-dir /app/site
     depends_on:
       - automated-logger
     logging:
@@ -57,12 +48,7 @@ services:
       - ./cm_logs:/app/cm_logs
       - ./site:/app/site
       - ./config:/app/config
-    environment:
-      - WATCH_DIR=/app/cm_logs
-      - OUTPUT_DIR=/app/site
-      - CITY=berlin
-      - WORKERS=2
-    command: python scripts/watch_and_process.py --city berlin --watch-dir /app/cm_logs --output-dir /app/site --workers 2
+    command: python scripts/watch_and_process.py --city berlin --watch-dir /app/cm_logs --output-dir /app/site
     depends_on:
       - automated-logger
     logging:
@@ -79,9 +65,6 @@ services:
     volumes:
       - ./site:/app/site
       - ./config:/app/config
-    environment:
-      - WATCH_INTERVAL=1  # 1 second
-      - PRIMARY_CITY=hamburg
     command: python scripts/watch_and_build_site.py --interval 1 --primary-city hamburg
     depends_on:
       - batch-processor-hamburg
@@ -134,8 +117,6 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config
-    environment:
-      - CHECK_INTERVAL=60
     command: python scripts/monitor_services.py --interval 60
     depends_on:
       - automated-logger
