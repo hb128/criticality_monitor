@@ -80,9 +80,9 @@ services:
       - ./site:/app/site
       - ./config:/app/config
     environment:
-      - WATCH_INTERVAL=300  # 5 minutes
+      - WATCH_INTERVAL=1  # 1 second
       - PRIMARY_CITY=hamburg
-    command: python scripts/watch_and_build_site.py --interval 300 --primary-city hamburg
+    command: python scripts/watch_and_build_site.py --interval 1 --primary-city hamburg
     depends_on:
       - batch-processor-hamburg
       - batch-processor-berlin
@@ -104,6 +104,22 @@ services:
       - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - site-builder
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # iPad renderer - watches generated site index.html and produces ipad_render.html + screenshot
+  ipad-render:
+    build: .
+    container_name: cm-ipad-render
+    restart: unless-stopped
+    depends_on:
+      - site-builder
+    volumes:
+      - ./site:/app/site
+    command: python scripts/ipad_render.py /app/site/index.html --out /app/site --wrapper-name ipad_render.html --watch --interval 3
     logging:
       driver: "json-file"
       options:

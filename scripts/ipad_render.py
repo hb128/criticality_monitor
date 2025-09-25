@@ -27,10 +27,12 @@ except Exception as e:
 def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
                        width: int, height: int, dpr: int,
                        full_page: bool, wait_for: str = None,
-                       user_agent: str = None, timeout: int = 30000):
+                       user_agent: str = None, timeout: int = 30000,
+                       wrapper_name: str = "ipad.html"):
     out_dir.mkdir(parents=True, exist_ok=True)
     screenshot_path = out_dir / "screenshot.png"
-    wrapper_path = out_dir / "ipad.html"
+    # Allow custom naming of wrapper (default remains ipad.html)
+    wrapper_path = out_dir / wrapper_name
 
     # Resolve file:// URL for local file loading
     url = input_html.resolve().as_uri()
@@ -82,10 +84,10 @@ def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
 </body>
 </html>
 """
-        wrapper_path.write_text(wrapper_html, encoding="utf-8")
-        print(f"Saved wrapper HTML: {wrapper_path}")
+    wrapper_path.write_text(wrapper_html, encoding="utf-8")
+    print(f"Saved wrapper HTML: {wrapper_path}")
 
-        browser.close()
+    browser.close()
 
     return screenshot_path, wrapper_path
 
@@ -100,6 +102,7 @@ def parse_args():
     p.add_argument("--wait-for", help="Optional CSS selector to wait for before screenshot")
     p.add_argument("--user-agent", help="Override user agent string")
     p.add_argument("--timeout", type=int, default=30000, help="Navigation timeout in ms")
+    p.add_argument("--wrapper-name", default="ipad.html", help="Filename for generated wrapper HTML (default: ipad.html)")
 
     # Watch mode additions
     p.add_argument("--watch", action="store_true", help="Continuously watch the input file and re-render on changes")
@@ -181,6 +184,7 @@ def main():
         wait_for=args.wait_for,
         user_agent=args.user_agent,
         timeout=args.timeout,
+        wrapper_name=args.wrapper_name,
     )
 
     if args.watch:
