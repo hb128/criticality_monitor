@@ -25,7 +25,9 @@ class CityPresets:
         "hamburg": City("hamburg", 53.3, 53.8, 9.6, 10.35),
         "berlin": City("berlin", 52.3, 52.7, 13.0, 13.8),
         "brussels": City("brussels", 50.8, 50.9, 4.3, 4.4),
-        "zurich": City("zurich", 47.3, 47.4, 8.5, 8.6)
+        "zurich": City("zurich", 47.3, 47.4, 8.5, 8.6),
+        "cologne": City("cologne", 50.85, 51.05, 6.8, 7.1),
+        "munich": City("munich", 48.05, 48.25, 11.45, 11.65)
     }
 
     @staticmethod

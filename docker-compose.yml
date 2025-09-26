@@ -8,8 +8,8 @@ services:
       - ./site/logs:/app/site/logs
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/automated_logger.py --interval 10 --log-dir /app/site/logs --verbose
-    user: "1000:1000"
+    command: python /app/scripts/automated_logger.py --interval 15 --log-dir /app/site/logs --verbose
+    # command: python /app/scripts/automated_logger.py --interval 10 --debug-source /app/site/logs/20220624/ --log-dir /app/site/logs --verbose
 
   # Batch processor for city 1 (Hamburg)
   batch-processor-hamburg:
@@ -25,7 +25,6 @@ services:
     command: python /app/scripts/watch_and_process.py --city hamburg --watch-dir /app/site/logs --output-dir /app/site
     depends_on:
       - automated-logger
-    user: "1000:1000"
 
   # Batch processor for city 2 (Berlin)
   batch-processor-berlin:
@@ -41,7 +40,66 @@ services:
     command: python /app/scripts/watch_and_process.py --city berlin --watch-dir /app/site/logs --output-dir /app/site
     depends_on:
       - automated-logger
-    user: "1000:1000"
+
+  # Batch processor for city 3 (Zurich)
+  batch-processor-zurich:
+    build: .
+    container_name: batch-processor-zurich
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./site:/app/site
+      - ./config:/app/config
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_process.py --city zurich --watch-dir /app/site/logs --output-dir /app/site
+    depends_on:
+      - automated-logger
+
+  # Batch processor for city 4 (Brussels)
+  batch-processor-brussels:
+    build: .
+    container_name: batch-processor-brussels
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./site:/app/site
+      - ./config:/app/config
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_process.py --city brussels --watch-dir /app/site/logs --output-dir /app/site
+    depends_on:
+      - automated-logger
+
+  # Batch processor for city 5 (Cologne)
+  batch-processor-cologne:
+    build: .
+    container_name: batch-processor-cologne
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./site:/app/site
+      - ./config:/app/config
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_process.py --city cologne --watch-dir /app/site/logs --output-dir /app/site
+    depends_on:
+      - automated-logger
+
+  # Batch processor for city 5 (Cologne)
+  batch-processor-munich:
+    build: .
+    container_name: batch-processor-munich
+    restart: unless-stopped
+    volumes:
+      - ./site/logs:/app/site/logs
+      - ./site:/app/site
+      - ./config:/app/config
+      - ./cm_modular:/app/cm_modular:ro
+      - ./scripts:/app/scripts:ro
+    command: python /app/scripts/watch_and_process.py --city munich --watch-dir /app/site/logs --output-dir /app/site
+    depends_on:
+      - automated-logger
 
   # Enhanced site builder - processes results and builds websites
   watch_and_build_site:
@@ -56,7 +114,6 @@ services:
     depends_on:
       - batch-processor-hamburg
       - batch-processor-berlin
-    user: "1000:1000"
 
   # Web server to serve the generated sites
   web-server:
@@ -85,4 +142,3 @@ services:
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/ipad_render.py /app/site/index.html --out /app/site --wrapper-name ipad_render.html --watch --interval 3
-    user: "1000:1000"
