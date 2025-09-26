@@ -191,7 +191,7 @@ def render_enhanced_html(
         }}
         
         .stat-card-value {{
-            font-size: 1.8rem;
+            font-size: 2.8rem;
             font-weight: 700;
             color: var(--primary-city-color);
             margin-bottom: 3px;
