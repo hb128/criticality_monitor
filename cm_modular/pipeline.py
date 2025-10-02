@@ -185,22 +185,27 @@ class Pipeline:
                     min_edge_cost_m=self.cfg.min_edge_cost_m
                 )
 
-        # 1) Build geometric-cost adjacency (same connectivity, weights = D_f)
-        adj_geom = router.as_geometric_adjacency(adj, D_f)
-        # 2) Find farthest pair under geometric distance (plain geometry, no angle-bias)
-        s0 = main[0]
-        dist0, _ = router.dijkstra_plain(adj_geom, s0)
-        a = max(main, key=lambda i: dist0[i])
-        dist_a, _ = router.dijkstra_plain(adj_geom, a)
-        b = max(main, key=lambda i: dist_a[i])
+                # 1) Build geometric-cost adjacency (same connectivity, weights = D_f)
+                adj_geom = router.as_geometric_adjacency(adj, D_f)
+                # 2) Find farthest pair under geometric distance (plain geometry, no angle-bias)
+                s0 = main[0]
+                dist0, _ = router.dijkstra_plain(adj_geom, s0)
+                a = max(main, key=lambda i: dist0[i])
+                dist_a, _ = router.dijkstra_plain(adj_geom, a)
+                b = max(main, key=lambda i: dist_a[i])
 
-        # 3) Compute path with penalized/angle-biased router (on adjacency 'adj')
-        _, prev_a, bestprev_a = router.dijkstra(adj, a)
-        path_indices = router.reconstruct_path(prev_a, b, bestprev_a[b])
-        start_idx, end_idx = a, b
-        # 4) True geometric length for display/metrics
-        length_m = router.path_true_length_m(D_f, path_indices)
-
+                # 3) Compute path with penalized/angle-biased router (on adjacency 'adj')
+                _, prev_a, bestprev_a = router.dijkstra(adj, a)
+                path_indices = router.reconstruct_path(prev_a, b, bestprev_a[b])
+                start_idx, end_idx = a, b
+                # 4) True geometric length for display/metrics
+                length_m = router.path_true_length_m(D_f, path_indices)
+        else:
+            # no components (all filtered out)
+            path_indices = []
+            start_idx = end_idx = None
+            length_m = 0.0
+            router = None
         return {
             "df": df,
             "hh": hh,
