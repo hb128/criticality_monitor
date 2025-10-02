@@ -61,12 +61,37 @@ def render_enhanced_html(
         .content-grid {{
             display: grid;
             grid-template-columns: 48% 52%;
-            grid-template-rows: auto auto;
+            /* Set explicit proportional heights instead of auto */
+            grid-template-rows: 38% 62%;  /* make top (chart) shorter, bottom (info) taller */
             grid-template-areas: 
                 "chart map"
                 "info  map";
             gap: 8px;
             height: calc(100vh - 32px); /* fill viewport minus small padding */
+        }}
+        /* Allow easy tuning via CSS variables (optional)
+        :root {{
+            --chart-row-fr: 0.38fr;
+            --info-row-fr: 0.62fr;
+        }}
+        .content-grid {{
+            grid-template-rows: var(--chart-row-fr) var(--info-row-fr);
+        }}
+        */
+        
+        /* Ensure chart shrinks properly inside its grid cell */
+        .chart-section {{
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }}
+        #chart {{
+            flex: 1;
+            min-height: 0;
+        }}
+        /* Let info-section fully use its (now larger) row */
+        .info-section {{
+            min-height: 0;
         }}
         
         .grid-item {{
@@ -187,11 +212,11 @@ def render_enhanced_html(
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-height: 60px;
+            min-height: 80px;       /* was 60 */
         }}
         
         .stat-card-value {{
-            font-size: 2.8rem;
+            font-size: 3.6rem;      /* was 2.8 */
             font-weight: 700;
             color: var(--primary-city-color);
             margin-bottom: 3px;
