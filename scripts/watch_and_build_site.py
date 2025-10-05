@@ -13,7 +13,7 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # Add the parent directory to sys.path to import cm_modular
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -25,9 +25,9 @@ class SiteBuilder:
     """Watches for updated CSV files and builds enhanced websites."""
     
     def __init__(self, 
-                 interval: int = 300,
+                 interval: int,
                  primary_city: str = "hamburg",
-                 site_root: Path = None):
+                 site_root: Optional[Path] = None):
         """
         Initialize the site builder.
         
@@ -183,26 +183,9 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Watch JSON state files and build enhanced websites")
     
-    parser.add_argument(
-        "--interval",
-        type=int,
-        default=1,
-        help="Check interval in seconds (default: 300)"
-    )
-    
-    parser.add_argument(
-        "--primary-city",
-        type=str,
-        default="hamburg",
-        help="Primary city name (default: hamburg)"
-    )
-    
-    parser.add_argument(
-        "--site-root",
-        type=str,
-        default="/app/site",
-        help="Root directory for sites (default: /app/site)"
-    )
+    parser.add_argument("--interval", type=int, default=1, help="Check interval in seconds (default: %(default)s)")
+    parser.add_argument("--primary-city", type=str, default="hamburg", help="Primary city name (default: %(default)s)")
+    parser.add_argument("--site-root", type=str, default="/app/site", help="Root directory for sites (default: %(default)s)")
     
     return parser.parse_args()
 

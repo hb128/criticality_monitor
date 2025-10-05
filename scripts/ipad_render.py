@@ -26,9 +26,9 @@ except Exception as e:
 
 def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
                        width: int, height: int, dpr: int,
-                       full_page: bool, wait_for: str = None,
-                       user_agent: str = None, timeout: int = 30000,
-                       wrapper_name: str = "ipad.html"):
+                       full_page: bool, wait_for: str ,
+                       user_agent: str, timeout: int,
+                       wrapper_name: str):
     out_dir.mkdir(parents=True, exist_ok=True)
     screenshot_path = out_dir / "screenshot.png"
     # Allow custom naming of wrapper (default remains ipad.html)
@@ -87,30 +87,8 @@ def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
     wrapper_path.write_text(wrapper_html, encoding="utf-8")
     print(f"Saved wrapper HTML: {wrapper_path}")
 
-    browser.close()
 
     return screenshot_path, wrapper_path
-
-def parse_args():
-    p = argparse.ArgumentParser(description="Render HTML -> PNG and generate simple HTML wrapper.")
-    p.add_argument("input", help="Path to input HTML file (will be watched if --watch is used)")
-    p.add_argument("--out", "-o", default="out", help="Output directory (will be created)")
-    p.add_argument("--width", type=int, default=1024, help="CSS viewport width (default 768, iPad3 logical width)")
-    p.add_argument("--height", type=int, default=768, help="CSS viewport height (default 1024)")
-    p.add_argument("--dpr", type=int, default=2, help="devicePixelRatio (default 2 for Retina)")
-    p.add_argument("--fullpage", action="store_true", help="Capture full page (may produce a tall image)")
-    p.add_argument("--wait-for", help="Optional CSS selector to wait for before screenshot")
-    p.add_argument("--user-agent", help="Override user agent string")
-    p.add_argument("--timeout", type=int, default=30000, help="Navigation timeout in ms")
-    p.add_argument("--wrapper-name", default="ipad.html", help="Filename for generated wrapper HTML (default: ipad.html)")
-
-    # Watch mode additions
-    p.add_argument("--watch", action="store_true", help="Continuously watch the input file and re-render on changes")
-    p.add_argument("--interval", type=float, default=5.0, help="Polling interval seconds for watch mode (default 5.0)")
-    p.add_argument("--settle", type=float, default=0.2, help="Settling delay seconds after change detected before rendering (default 0.2)")
-    p.add_argument("--quiet", action="store_true", help="Reduce log verbosity in watch mode")
-    return p.parse_args()
-
 
 def watch_and_render(input_path: pathlib.Path, *,
                      render_kwargs: dict,
@@ -171,7 +149,22 @@ def watch_and_render(input_path: pathlib.Path, *,
     return last_result
 
 def main():
-    args = parse_args()
+    p = argparse.ArgumentParser(description="Render HTML -> PNG and generate simple HTML wrapper.")
+    p.add_argument("input", help="Path to input HTML file (will be watched if --watch is used)")
+    p.add_argument("--out", "-o", default="data/sites", help="Output directory (will be created) (default: %(default)s)")
+    p.add_argument("--width", type=int, default=1024, help="CSS viewport width (default: %(default)s, iPad3 logical width)")
+    p.add_argument("--height", type=int, default=768, help="CSS viewport height (default: %(default)s)")
+    p.add_argument("--dpr", type=int, default=2, help="devicePixelRatio (default: %(default)s for Retina)")
+    p.add_argument("--fullpage", action="store_true", help="Capture full page (may produce a tall image)")
+    p.add_argument("--wait-for", help="Optional CSS selector to wait for before screenshot")
+    p.add_argument("--user-agent", help="Override user agent string")
+    p.add_argument("--timeout", type=int, default=30000, help="Navigation timeout in ms (default: %(default)s)")
+    p.add_argument("--wrapper-name", default="ipad.html", help="Filename for generated wrapper HTML (default: %(default)s)")
+    p.add_argument("--watch", action="store_true", help="Continuously watch the input file and re-render on changes")
+    p.add_argument("--interval", type=float, default=5.0, help="Polling interval seconds for watch mode (default: %(default)s)")
+    p.add_argument("--settle", type=float, default=0.2, help="Settling delay seconds after change detected before rendering (default: %(default)s)")
+    p.add_argument("--quiet", action="store_true", help="Reduce log verbosity in watch mode")
+    args = p.parse_args()
     input_path = pathlib.Path(args.input)
     out_dir = pathlib.Path(args.out)
 
@@ -208,17 +201,7 @@ def main():
         input_html=input_path,
         **render_kwargs
     )
-    print("\nDone.")
-    print("To serve the output folder on your local network (Windows):")
-    print(f"  1) Open a PowerShell/CMD prompt in {out_dir.resolve()}")
-    print("  2) Run: python -m http.server 8000")
-    print("  3) Find your PC's local IP address with: ipconfig (look for IPv4 under Wi-Fi adapter)")
-    print("  4) Open on another device on the same Wi-Fi: http://<your-ip>:8000")
-    print("\nIf you want a public URL, use ngrok (https://ngrok.com):")
-    print("  ngrok http 8000")
-    print("\nIf Windows firewall blocks access, allow Python or open port 8000, e.g.:")
-    print('  netsh advfirewall firewall add rule name="Python HTTP Server 8000" dir=in action=allow protocol=TCP localport=8000')
-    print("\nEnjoy!")
+    print("Done.")
 
 if __name__ == "__main__":
     main()

@@ -17,12 +17,12 @@ services:
     container_name: batch-processor-hamburg
     restart: unless-stopped
     volumes:
-      - ./site/logs:/app/site/logs
-      - ./site:/app/site
+      - ./data/logs:/app/data/logs
+      - ./data/site:/app/data/site
       - ./config:/app/config
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city hamburg --watch-dir /app/site/logs --output-dir /app/site
+    command: python /app/scripts/watch_and_process.py --city hamburg --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
       - automated-logger
 
@@ -32,12 +32,12 @@ services:
     container_name: batch-processor-berlin
     restart: unless-stopped
     volumes:
-      - ./site/logs:/app/site/logs
-      - ./site:/app/site
+      - ./data/logs:/app/data/logs
+      - ./data/site:/app/data/site
       - ./config:/app/config
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city berlin --watch-dir /app/site/logs --output-dir /app/site
+    command: python /app/scripts/watch_and_process.py --city berlin --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
       - automated-logger
 
@@ -47,12 +47,12 @@ services:
     container_name: batch-processor-zurich
     restart: unless-stopped
     volumes:
-      - ./site/logs:/app/site/logs
-      - ./site:/app/site
+      - ./data/logs:/app/data/logs
+      - ./data/site:/app/data/site
       - ./config:/app/config
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city zurich --watch-dir /app/site/logs --output-dir /app/site
+    command: python /app/scripts/watch_and_process.py --city zurich --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
       - automated-logger
 
@@ -62,12 +62,12 @@ services:
     container_name: batch-processor-brussels
     restart: unless-stopped
     volumes:
-      - ./site/logs:/app/site/logs
-      - ./site:/app/site
+      - ./data/logs:/app/data/logs
+      - ./data/site:/app/data/site
       - ./config:/app/config
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city brussels --watch-dir /app/site/logs --output-dir /app/site
+    command: python /app/scripts/watch_and_process.py --city brussels --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
       - automated-logger
 
@@ -77,12 +77,12 @@ services:
     container_name: batch-processor-cologne
     restart: unless-stopped
     volumes:
-      - ./site/logs:/app/site/logs
-      - ./site:/app/site
+      - ./data/logs:/app/data/logs
+      - ./data/site:/app/data/site
       - ./config:/app/config
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city cologne --watch-dir /app/site/logs --output-dir /app/site
+    command: python /app/scripts/watch_and_process.py --city cologne --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
       - automated-logger
 
@@ -92,12 +92,12 @@ services:
     container_name: batch-processor-munich
     restart: unless-stopped
     volumes:
-      - ./site/logs:/app/site/logs
-      - ./site:/app/site
+      - ./data/logs:/app/data/logs
+      - ./data/site:/app/data/site
       - ./config:/app/config
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city munich --watch-dir /app/site/logs --output-dir /app/site
+    command: python /app/scripts/watch_and_process.py --city munich --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
       - automated-logger
 
@@ -107,7 +107,7 @@ services:
     container_name: watch_and_build_site
     restart: unless-stopped
     volumes:
-      - ./site:/app/site
+      - ./data/site:/app/data/site
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/watch_and_build_site.py --interval 1 --primary-city hamburg
@@ -123,7 +123,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./site:/usr/share/nginx/html:ro
+      - ./data/site:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - watch_and_build_site
@@ -138,7 +138,7 @@ services:
     depends_on:
       - watch_and_build_site
     volumes:
-      - ./site:/app/site
+      - ./data/site:/app/data/site
       - ./cm_modular:/app/cm_modular:ro
       - ./scripts:/app/scripts:ro
-    command: python /app/scripts/ipad_render.py /app/site/index.html --out /app/site --wrapper-name ipad_render.html --watch --interval 3
+    command: python /app/scripts/ipad_render.py /app/data/site/index.html --out /app/data/site --wrapper-name ipad_render.html --watch --interval 3

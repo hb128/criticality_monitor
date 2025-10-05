@@ -128,11 +128,11 @@ def parse_args():
     """Parse command line arguments."""
     p = argparse.ArgumentParser(description="Build an enhanced Criticality Monitor website.")
     p.add_argument("data", help="Path to the JSON state file (results.json)")
-    p.add_argument("--outdir", default="sites", help="Output directory (default: site)")
-    p.add_argument("--city", default="Hamburg", help="City name (default: Hamburg)")
-    p.add_argument("--copy-maps", default=False, action="store_true", help="Copy map files")
-    p.add_argument("--maps-subdir", default="maps", help="Maps subdirectory (default: maps)")
-    p.add_argument("--recent-limit", type=int, default=30, help="Number of recent rides for plot (default: 30)")
+    p.add_argument("--outdir", default="data/sites/", help="Output directory (default: %(default)s)")
+    p.add_argument("--city", default="Hamburg", help="City name (default: %(default)s)")
+    p.add_argument("--copy-maps", action="store_true", help="Copy map files (default: Off)")
+    p.add_argument("--maps-subdir", default="maps", help="Maps subdirectory (default: %(default)s)")
+    p.add_argument("--recent-limit", type=int, default=30, help="Number of recent rides for plot (default: %(default)s)")
     return p.parse_args()
 
 

@@ -106,47 +106,12 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Watch directory and process new files")
     
-    parser.add_argument(
-        "--watch-dir",
-        type=str,
-        required=True,
-        help="Directory to watch for new files"
-    )
-    
-    parser.add_argument(
-        "--output-dir", 
-        type=str,
-        required=True,
-        help="Directory to output processed files"
-    )
-    
-    parser.add_argument(
-        "--city",
-        type=str,
-        default="hamburg",
-        help="City preset for pipeline configuration"
-    )
-    
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=1,
-        help="Number of parallel workers (default: %(default)s)"
-    )
-    
-    parser.add_argument(
-        "--interval",
-        type=int,
-        default=15,
-        help="Check interval in seconds (default: %(default)s)"
-    )
-    
-    parser.add_argument(
-        "--pattern",
-        action="append",
-        default=None,
-        help="File patterns to watch (can repeat, default: *.txt, *.json)"
-    )
+    parser.add_argument("--watch-dir", type=str, required=True, help="Directory to watch for new files")
+    parser.add_argument("--output-dir", type=str, required=True, help="Directory to output processed files")
+    parser.add_argument("--city", type=str, default="hamburg", help="City preset for pipeline configuration (default: %(default)s)")
+    parser.add_argument("--workers", type=int, default=1, help="Number of parallel workers (default: %(default)s)")
+    parser.add_argument("--interval", type=int, default=15, help="Check interval in seconds (default: %(default)s)")
+    parser.add_argument("--pattern", action="append", default=None, help="File patterns to watch (can repeat, default: *.txt, *.json)")
     
     return parser.parse_args()
 

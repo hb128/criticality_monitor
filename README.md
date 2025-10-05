@@ -30,6 +30,7 @@ source .venv/bin/activate
 # Windows
 .\.venv\Scripts\activate
 pip install -r requirements.txt
+python -m playwright install  # Install browser for Playwright
 ```
 
 ## Quick Start (Single File → Map)

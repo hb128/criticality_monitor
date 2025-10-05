@@ -42,7 +42,7 @@ ensure_dir() {
 }
 
 # Base required dirs
-BASE_DIRS="/app/site /app/site/logs"
+BASE_DIRS="/app/data/sites /app/data/logs"
 
 # Discover cities dynamically
 # Priority order:
@@ -77,7 +77,7 @@ for c in "${city_array[@]}"; do
   # Sanitize: allow alnum, dash, underscore only
   clean=$(echo "$c" | tr -cd '[:alnum:]_-')
   [ -z "$clean" ] && continue
-  CITY_DIRS="$CITY_DIRS /app/site/$clean"
+  CITY_DIRS="$CITY_DIRS /app/data/sites/$clean"
 done
 
 log "Detected city directories: ${CITY_DIRS:-<none>}"
@@ -95,9 +95,9 @@ if [ "${PERM_DEBUG:-0}" = "1" ]; then
 fi
 
 # Targeted recursive fix for logs (avoid large chown trees)
-if [ -d /app/site/logs ]; then
-  if chown -R "$APP_USER:$APP_GROUP" /app/site/logs 2>/dev/null; then
-    chmod -R g+rw /app/site/logs || true
+if [ -d /app/data/logs ]; then
+  if chown -R "$APP_USER:$APP_GROUP" /app/data/logs 2>/dev/null; then
+    chmod -R g+rw /app/data/logs || true
   fi
 fi
 

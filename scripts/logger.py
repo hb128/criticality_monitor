@@ -216,44 +216,12 @@ Examples:
         """
     )
     
-    parser.add_argument(
-        '--interval', 
-        type=int, 
-        default=15,
-        help='Interval between logs in seconds (default: %(default)s)'
-    )
-    
-    parser.add_argument(
-        '--log-dir', 
-        type=str, 
-        default='data/logs',
-        help='Custom logging directory (default: %(default)s)'
-    )
-    parser.add_argument(
-        '--max-runs', 
-        type=int, 
-        default=None,
-        help='Maximum number of logging runs (default: unlimited)'
-    )
-    
-    parser.add_argument(
-        '--use-sample', 
-        action='store_true',
-        help='Use sample data instead of API calls (for testing)'
-    )
-    
-    parser.add_argument(
-        '--debug-source', 
-        type=str, 
-        default=None,
-        help='Directory containing txt files for debug mode (replays files instead of using API)'
-    )
-    
-    parser.add_argument(
-        '--verbose', 
-        action='store_true',
-        help='Enable verbose output'
-    )
+    parser.add_argument('--interval', type=int, default=15, help='Interval between logs in seconds (default: %(default)s)')
+    parser.add_argument('--log-dir', type=str, default='data/logs', help='Custom logging directory (default: %(default)s)')
+    parser.add_argument('--max-runs', type=int, default=None, help='Maximum number of logging runs (default: %(default)s)')
+    parser.add_argument('--use-sample', action='store_true', help='Use sample data instead of API calls (for testing)')
+    parser.add_argument('--debug-source', type=str, default=None, help='Directory containing txt files for debug mode (replays files instead of using API)')
+    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
     
     args = parser.parse_args()
     
