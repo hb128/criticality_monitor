@@ -26,8 +26,8 @@ except Exception as e:
 
 def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
                        width: int, height: int, dpr: int,
-                       full_page: bool, wait_for: str ,
-                       user_agent: str, timeout: int,
+                       full_page: bool, wait_for: Optional[str],
+                       user_agent: Optional[str], timeout: int,
                        wrapper_name: str):
     out_dir.mkdir(parents=True, exist_ok=True)
     screenshot_path = out_dir / "screenshot.png"
@@ -87,7 +87,6 @@ def render_html_to_png(input_html: pathlib.Path, out_dir: pathlib.Path,
     wrapper_path.write_text(wrapper_html, encoding="utf-8")
     print(f"Saved wrapper HTML: {wrapper_path}")
 
-
     return screenshot_path, wrapper_path
 
 def watch_and_render(input_path: pathlib.Path, *,
@@ -131,9 +130,12 @@ def watch_and_render(input_path: pathlib.Path, *,
                         print(f"[watch] Change detected (mtime {mtime}); re-rendering ...")
                 time.sleep(settle)  # allow writer to finish
                 try:
+                    # Remove input_html from render_kwargs if present
+                    kwargs = dict(render_kwargs)
+                    kwargs.pop("input_html", None)
                     screenshot, wrapper = render_html_to_png(
-                        input_html=input_path,
-                        **render_kwargs
+                        input_path,
+                        **kwargs
                     )
                     last_result = (screenshot, wrapper)
                     last_mtime = mtime
@@ -199,7 +201,15 @@ def main():
     print("Rendering...")
     screenshot, wrapper = render_html_to_png(
         input_html=input_path,
-        **render_kwargs
+        out_dir=out_dir,
+        width=args.width,
+        height=args.height,
+        dpr=args.dpr,
+        full_page=args.fullpage,
+        wait_for=args.wait_for,
+        user_agent=args.user_agent,
+        timeout=args.timeout,
+        wrapper_name=args.wrapper_name,
     )
     print("Done.")
 
