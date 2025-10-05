@@ -18,9 +18,9 @@ from typing import List
 
 # Re‑use existing functions from batch_build / build_site
 try:
-    from scripts import batch_build as bb  # type: ignore
+    from scripts import run_batch as bb  # type: ignore
 except ImportError:
-    import batch_build as bb  # fallback when run as plain script
+    import scripts.run_batch as bb  # fallback when run as plain script
 
 try:
     from scripts.build_enhanced_site import build_enhanced_site  # type: ignore

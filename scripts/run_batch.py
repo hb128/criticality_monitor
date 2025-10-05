@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+Batch Processing Script for Criticality Monitor
+
+Processes multiple location files through the pipeline to generate cluster maps and metrics.
+Supports incremental processing to avoid reprocessing unchanged files.
+"""
 from __future__ import annotations
 import argparse
 import sys
@@ -88,7 +94,7 @@ def run_batch(
     outdir: Path,
     patterns: list[str],
     cfg: PipelineConfig,
-    *,
+    *, # everything after this must be keyword-only
     workers: int = 1,
     incremental: bool = True,
     state_file: Path | None = None,
@@ -242,26 +248,26 @@ def run_batch(
 def parse_args():
     p = argparse.ArgumentParser(description="Batch-build cluster maps and export results to JSON state file.")
     p.add_argument("indir", type=str, help="Directory containing input files (JSON-within-.txt is fine)." )
-    p.add_argument("--outdir", type=str, default=None, help="Directory to write HTML maps (default: <indir>/maps).")
-    p.add_argument("--pattern", action="append", default=["*.txt", "*.json"], help="Glob pattern(s) to include (can repeat). Default: *.txt, *.json" )
+    p.add_argument("--outdir", type=str, default=None, help="Directory to write HTML maps (default: %(default)s).")
+    p.add_argument("--pattern", action="append", default=["*.txt", "*.json"], help="Glob pattern(s) to include (can repeat). Default: %(default)s" )
     # Config overrides
     p.add_argument("--city", type=str, default=None, help="City preset name (overrides bbox if supplied).")
-    p.add_argument("--lat-min", type=float, default=53.3)
-    p.add_argument("--lat-max", type=float, default=53.8)
-    p.add_argument("--lon-min", type=float, default=9.6)
-    p.add_argument("--lon-max", type=float, default=10.35)
-    p.add_argument("--k", type=int, default=6)
-    p.add_argument("--n-sigmas", type=float, default=3.0)
-    p.add_argument("--L0", type=float, default=50.0)
-    p.add_argument("--penalty-factor", type=float, default=3.0)
-    p.add_argument("--angle-bias", type=float, default=8.0, help="meters per radian")
-    p.add_argument("--step-penalty", type=float, default=5.0, help="meters per edge")
-    p.add_argument("--min-edge-cost", type=float, default=15.0, help="meters floor per edge")
-    p.add_argument("--bounds-expand", type=float, default=2.0)
-    p.add_argument("--workers", type=int, default=1, help="Number of parallel workers (default: 1). Use 0 or 1 for serial execution.")
+    p.add_argument("--lat-min", type=float, default=53.3, help="Minimum latitude (default: %(default)s).")
+    p.add_argument("--lat-max", type=float, default=53.8, help="Maximum latitude (default: %(default)s).")
+    p.add_argument("--lon-min", type=float, default=9.6, help="Minimum longitude (default: %(default)s).")
+    p.add_argument("--lon-max", type=float, default=10.35, help="Maximum longitude (default: %(default)s).")
+    p.add_argument("--k", type=int, default=6, help="Number of neighbors (default: %(default)s).")
+    p.add_argument("--n-sigmas", type=float, default=3.0, help="Sigma threshold (default: %(default)s).")
+    p.add_argument("--L0", type=float, default=50.0, help="Base connection length (default: %(default)s).")
+    p.add_argument("--penalty-factor", type=float, default=3.0, help="Penalty factor (default: %(default)s).")
+    p.add_argument("--angle-bias", type=float, default=8.0, help="Meters per radian (default: %(default)s).")
+    p.add_argument("--step-penalty", type=float, default=5.0, help="Meters per edge (default: %(default)s).")
+    p.add_argument("--min-edge-cost", type=float, default=15.0, help="Meters floor per edge (default: %(default)s).")
+    p.add_argument("--bounds-expand", type=float, default=2.0, help="Bounds expansion (default: %(default)s).")
+    p.add_argument("--workers", type=int, default=1, help="Number of parallel workers (default: %(default)s). Use 0 or 1 for serial execution.")
     # Incremental processing options
     p.add_argument("--no-incremental", dest="incremental", action="store_false", help="Disable incremental processing (process all files)")
-    p.add_argument("--state-file", type=str, default=None, help="Path to state file for tracking processed files (default: <outdir>/results.json)")
+    p.add_argument("--state-file", type=str, default=None, help="Path to state file for tracking processed files (default: %(default)s)")
     p.add_argument("--reset-state", action="store_true", help="Reset state file before processing (process all files and rebuild state)")
     return p.parse_args()
 

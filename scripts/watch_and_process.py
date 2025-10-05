@@ -8,17 +8,16 @@ This script acts as a file watcher that automatically processes new log files.
 
 import argparse
 import time
-import os
 import sys
 from pathlib import Path
-from typing import Set
+from typing import Optional
 from datetime import datetime
 
 # Add the parent directory to sys.path to import cm_modular
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from cm_modular.pipeline import PipelineConfig
-from scripts.batch_build import run_batch
+from scripts.run_batch import run_batch
 
 
 class FileWatcher:
@@ -27,10 +26,10 @@ class FileWatcher:
     def __init__(self, 
                  watch_dir: Path,
                  output_dir: Path,
-                 city: str = None,
+                 city: str,
+                 interval: int,
                  workers: int = 1,
-                 interval: int = 60,
-                 patterns: list = None):
+                 patterns: Optional[list] = None):
         """
         Initialize the file watcher.
         
@@ -38,12 +37,12 @@ class FileWatcher:
             watch_dir: Directory to watch for new files
             output_dir: Directory to output processed files
             city: City preset for pipeline configuration
-            workers: Number of parallel workers
             interval: Check interval in seconds
+            workers: Number of parallel workers
             patterns: File patterns to watch for
         """
         self.watch_dir = Path(watch_dir)
-        self.output_dir = Path(output_dir + "/" + city)
+        self.output_dir = Path(output_dir) / city
         self.city = city
         self.workers = workers
         self.interval = interval
@@ -132,14 +131,14 @@ def parse_args():
         "--workers",
         type=int,
         default=1,
-        help="Number of parallel workers (default: 1)"
+        help="Number of parallel workers (default: %(default)s)"
     )
     
     parser.add_argument(
         "--interval",
         type=int,
-        default=60,
-        help="Check interval in seconds (default: 60)"
+        default=15,
+        help="Check interval in seconds (default: %(default)s)"
     )
     
     parser.add_argument(
