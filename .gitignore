@@ -1,9 +1,4 @@
-.ipynb_checkpoints
-cm_logs/
+.venv/
 *.pyc
 *.txt
-site/
-out/
-sites/
-test_deployment/
-.venv/
+data/
