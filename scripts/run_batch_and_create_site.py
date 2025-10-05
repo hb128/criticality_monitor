@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Convenience wrapper: run batch_build then build_enhanced_site for a city.
+"""
+Better script name suggestion: build_city_website.py
+
+Convenience wrapper: run batch_build then build_enhanced_site for a city.
 
 Example:
-  python -m scripts.build_city_site cm_logs/20220624 --city zurich --workers 4 --no-copy-maps
+    python -m scripts.build_city_website cm_logs/20220624 --city zurich --workers 4 --no-copy-maps
 
 This expands to roughly:
-  python -m scripts.batch_build cm_logs/20220624 --city zurich --outdir site/zurich/maps --workers 4
-  python -m scripts.build_enhanced_site site/zurich/maps/results.json --outdir site/zurich --no-copy-maps
+    python -m scripts.batch_build cm_logs/20220624 --city zurich --outdir site/zurich/maps --workers 4
+    python -m scripts.build_enhanced_site site/zurich/maps/results.json --outdir site/zurich --no-copy-maps
 
 Options let you override defaults similarly to the underlying scripts.
 """
@@ -34,27 +37,26 @@ def parse_args():
     p = argparse.ArgumentParser(description="Run batch_build + build_enhanced_site in one step.")
     p.add_argument("indir", help="Input directory containing JSON/.txt location files")
     p.add_argument("--city", type=str, default=None, help="City preset name (overrides bbox).")
-    p.add_argument("--site-out", type=str, default=None, help="Base site output directory (default: site/<city> or site)")
-    p.add_argument("--maps-subdir", default="maps", help="Subdirectory under site-out for individual map HTML (default: maps)")
-    p.add_argument("--patterns", nargs="+", default=["*.txt", "*.json"], help="Glob patterns to include (default: *.txt *.json)")
-    p.add_argument("--workers", type=int, default=1, help="Parallel workers for batch build (default: 1)")
+    p.add_argument("--site-out", type=str, default=None, help="Base site output directory (default: site/<city> or site).")
+    p.add_argument("--maps-subdir", default="maps", help="Subdirectory under site-out for individual map HTML. Default: %(default)s")
+    p.add_argument("--patterns", nargs="+", default=["*.txt", "*.json"], help="Glob patterns to include. Default: %(default)s")
+    p.add_argument("--workers", type=int, default=1, help="Parallel workers for batch build. Default: %(default)s")
     # Pipeline overrides (mirrors batch_build / build_map)
-    p.add_argument("--lat-min", type=float, default=53.3)
-    p.add_argument("--lat-max", type=float, default=53.8)
-    p.add_argument("--lon-min", type=float, default=9.6)
-    p.add_argument("--lon-max", type=float, default=10.35)
-    p.add_argument("--k", type=int, default=6)
-    p.add_argument("--n-sigmas", type=float, default=3.0)
-    p.add_argument("--L0", type=float, default=50.0)
-    p.add_argument("--penalty-factor", type=float, default=3.0)
-    p.add_argument("--angle-bias", type=float, default=8.0)
-    p.add_argument("--step-penalty", type=float, default=5.0)
-    p.add_argument("--min-edge-cost", type=float, default=15.0)
-    p.add_argument("--bounds-expand", type=float, default=2.0)
+    p.add_argument("--lat-min", type=float, default=53.3, help="Minimum latitude. Default: %(default)s")
+    p.add_argument("--lat-max", type=float, default=53.8, help="Maximum latitude. Default: %(default)s")
+    p.add_argument("--lon-min", type=float, default=9.6, help="Minimum longitude. Default: %(default)s")
+    p.add_argument("--lon-max", type=float, default=10.35, help="Maximum longitude. Default: %(default)s")
+    p.add_argument("--k", type=int, default=6, help="Number of clusters (k). Default: %(default)s")
+    p.add_argument("--n-sigmas", type=float, default=3.0, help="Sigma threshold. Default: %(default)s")
+    p.add_argument("--L0", type=float, default=50.0, help="L0 parameter. Default: %(default)s")
+    p.add_argument("--penalty-factor", type=float, default=3.0, help="Penalty factor. Default: %(default)s")
+    p.add_argument("--angle-bias", type=float, default=8.0, help="Angle bias. Default: %(default)s")
+    p.add_argument("--step-penalty", type=float, default=5.0, help="Step penalty. Default: %(default)s")
+    p.add_argument("--min-edge-cost", type=float, default=15.0, help="Minimum edge cost. Default: %(default)s")
+    p.add_argument("--bounds-expand", type=float, default=2.0, help="Bounds expand factor. Default: %(default)s")
     # Site build options
-    p.add_argument("--title", default=None, help="Optional site title")
+    p.add_argument("--title", default=None, help="Optional site title.")
     p.add_argument("--no-copy-maps", dest="copy_maps", action="store_false", help="Do not copy map HTML files into site")
-    p.add_argument("--query", default=None, help="Optional pandas query filter for data rows")
     return p.parse_args()
 
 
@@ -99,7 +101,6 @@ def main():
         city=a.city or "Criticality Monitor",
         copy_maps=a.copy_maps,
         maps_subdir=a.maps_subdir,
-        query=a.query,
     )
 
     print(f"Done. Open: {site_base / 'index.html'}")
