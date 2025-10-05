@@ -2,16 +2,7 @@
 """
 Automated Location Logger Script
 
-This script continuously logs location data from the Criticality Monitor API.
-
-Usage:
-    python automated_logger.py [options]
-
-Options:
-    --interval SECONDS    Interval between logs in seconds (default: 60)
-    --log-dir PATH       Custom logging directory (default: cm_logs/automated)
-    --max-runs COUNT     Maximum number of logging runs (default: unlimited)
-    --verbose            Enable verbose output
+This script continuously logs location data from the Criticality Maps API.
 """
 
 import argparse
@@ -22,6 +13,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+import shutil
 
 # Add the parent directory to sys.path to import cm_modular
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -33,8 +25,8 @@ class AutomatedLogger:
     """Automated location logger with configurable intervals and options."""
     
     def __init__(self, 
-                 interval: int = 60,
-                 log_dir: str = "cm_logs/automated",
+                 interval: int,
+                 log_dir: str,
                  max_runs: Optional[int] = None,
                  verbose: bool = False,
                  debug_source: Optional[str] = None):
@@ -86,14 +78,13 @@ class AutomatedLogger:
             
         debug_path = Path(self.debug_source)
         if not debug_path.exists():
-            print(f"Warning: Debug source directory does not exist: {debug_path}")
-            return
+            raise FileNotFoundError(f"Warning: Debug source directory does not exist: {debug_path}")
             
         # Find all .txt files and sort them alphabetically
         self.debug_files = sorted(debug_path.glob("*.txt"))
         
         if not self.debug_files:
-            print(f"Warning: No .txt files found in debug source directory: {debug_path}")
+            raise FileNotFoundError(f"Warning: No .txt files found in debug source directory: {debug_path}")
         else:
             self._log_message(f"Loaded {len(self.debug_files)} debug files from {debug_path}")
     
@@ -119,21 +110,16 @@ class AutomatedLogger:
         dest_filename = f"{timestamp}.txt"
         dest_path = Path(self.log_dir) / dest_filename
         
-        try:
-            # Copy the file content
-            import shutil
-            shutil.copy2(source_file, dest_path)
-            
-            # Count lines to simulate position count
-            with open(source_file, 'r', encoding='utf-8') as f:
-                line_count = sum(1 for line in f if line.strip())
-            
-            self._log_message(f"Copied debug file: {source_file.name} -> {dest_filename} ({line_count} lines)")
-            return line_count
-            
-        except Exception as e:
-            print(f"Error copying debug file {source_file}: {e}")
-            return 0
+        # Copy the file content
+        shutil.copy2(source_file, dest_path)
+        
+        # Count lines to simulate position count
+        with open(source_file, 'r', encoding='utf-8') as f:
+            line_count = sum(1 for line in f if line.strip())
+        
+        self._log_message(f"Copied debug file: {source_file.name} -> {dest_filename} ({line_count} lines)")
+        return line_count
+
     
     def run_single_log(self) -> bool:
         """
@@ -226,7 +212,7 @@ Examples:
   python automated_logger.py --interval 30            # Log every 30 seconds
   python automated_logger.py --log-dir my_logs        # Custom directory
   python automated_logger.py --max-runs 10 --verbose  # 10 runs with verbose output
-  python automated_logger.py --debug-source cm_logs/20220624  # Debug mode with historical data
+  python automated_logger.py --debug-source logs/20220624  # Debug mode with historical data
         """
     )
     
@@ -234,16 +220,15 @@ Examples:
         '--interval', 
         type=int, 
         default=15,
-        help='Interval between logs in seconds (default: 60)'
+        help='Interval between logs in seconds (default: %(default)s)'
     )
     
     parser.add_argument(
         '--log-dir', 
         type=str, 
-        default='cm_logs/automated',
-        help='Custom logging directory (default: cm_logs/automated)'
+        default='data/logs',
+        help='Custom logging directory (default: %(default)s)'
     )
-    
     parser.add_argument(
         '--max-runs', 
         type=int, 

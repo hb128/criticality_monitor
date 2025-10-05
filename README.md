@@ -46,7 +46,7 @@ m, out_path = pipe.run("path/to/input_log.txt", "route_map.html")
 ## Automated Chain (Live-ish Workflow)
 1. Logging (ingest / copy new raw dumps):
 ```bash
-python -m scripts.automated_logger --log-dir test_deployment/logs --debug-source ./cm_logs/20220624/
+python -m scripts.logger --log-dir test_deployment/logs --debug-source ./cm_logs/20220624/
 ```
 2. Processing (cluster, path, map) on interval:
 ```bash
