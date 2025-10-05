@@ -12,10 +12,11 @@ import pytz
 class MapStyle:
     palette: Sequence[str] = (
         "#2ecc71",  # largest cluster
-        "#1f77b4", "#ff7f0e", "#9467bd", "#8c564b",
-        "#e377c2", "#17becf", "#bcbd22", "#d62728", "#7f7f7f",
+        "#1f77b4", "#ff0e2e", "#9467bd", "#8c564b",
+        "#e377c2", "#17becf", "#bcbd22", "#3C1258", "#7f7f7f",
     )
     path_color: str = "#111111"
+    path_timespan_color: str = "#ff9800"  # orange for path-timespan points
 
 class MapBuilder:
     """Build a Folium map with clusters, outliers, and the diameter path overlay."""
@@ -31,14 +32,9 @@ class MapBuilder:
         self,
         filtered: pd.DataFrame,
         outliers: pd.DataFrame,
-        cluster_sizes: list[int],
-        order: list[int],
         path_indices: list[int] | None,
-        start_idx: int | None,
-        end_idx: int | None,
-        length_m: float,
-        angle_bias_m_per_rad: float,
         bounds_expand: float = 2.0,
+        path_df: pd.DataFrame | None = None,  # DataFrame of points within path-timespan
     ) -> folium.Map:
         # compute overall bbox (fallback)
         lat_min, lat_max = filtered["lat"].min(), filtered["lat"].max()
@@ -49,16 +45,42 @@ class MapBuilder:
         # start map centered on overall center (may be re-fit below)
         m = folium.Map(location=[lat_c, lon_c], tiles="OpenStreetMap")
 
-        for _, r in filtered.iterrows():
-            folium.CircleMarker(
-                location=[r.lat, r.lon],
-                radius=4,
-                color=self.color_for_cluster(int(r.cluster)),
-                fill=True,
-                fill_opacity=0.9,
-                weight=1,
-                tooltip=f"cluster {int(r.cluster)}",
-            ).add_to(m)
+        # Draw all filtered points, but highlight those in path_df
+        if path_df is not None and not path_df.empty:
+            # Use index to match points in filtered
+            path_indices_set = set(path_df.index)
+            for idx, r in filtered.iterrows():
+                if idx in path_indices_set and int(r.cluster) == 0:
+                    folium.CircleMarker(
+                        location=[r.lat, r.lon],
+                        radius=5,
+                        color=self.style.path_timespan_color,
+                        fill=True,
+                        fill_opacity=0.95,
+                        weight=2,
+                        tooltip=f"path-timespan (idx: {idx})",
+                    ).add_to(m)
+                else:
+                    folium.CircleMarker(
+                        location=[r.lat, r.lon],
+                        radius=4,
+                        color=self.color_for_cluster(int(r.cluster)),
+                        fill=True,
+                        fill_opacity=0.9,
+                        weight=1,
+                        tooltip=f"cluster {int(r.cluster)} (idx: {idx})",
+                    ).add_to(m)
+        else:
+            for idx, r in filtered.iterrows():
+                folium.CircleMarker(
+                    location=[r.lat, r.lon],
+                    radius=4,
+                    color=self.color_for_cluster(int(r.cluster)),
+                    fill=True,
+                    fill_opacity=0.9,
+                    weight=1,
+                    tooltip=f"cluster {int(r.cluster)} (idx: {idx})",
+                ).add_to(m)
 
         for _, r in outliers.iterrows():
             folium.CircleMarker(
@@ -78,37 +100,7 @@ class MapBuilder:
                 weight=3,
                 color=self.style.path_color,
                 opacity=0.9,
-            ).add_to(m)
-            # if start_idx is not None and end_idx is not None:
-            #     s_lat = filtered.loc[start_idx, "lat"]; s_lon = filtered.loc[start_idx, "lon"]
-            #     e_lat = filtered.loc[end_idx, "lat"];   e_lon = filtered.loc[end_idx, "lon"]
-            #     # folium.Marker([s_lat, s_lon], tooltip="Start", icon=folium.Icon(color="green", icon="play")).add_to(m)
-                # folium.Marker([e_lat, e_lon], tooltip="End", icon=folium.Icon(color="red", icon="stop")).add_to(m)
-# 
-        # largest_size = cluster_sizes[order[0]] if order else 0
-        # legend_html = f"""
-        # <div style="position: fixed; bottom: 20px; left: 20px; z-index: 9999;
-        #             background: white; padding: 10px 12px; border: 1px solid #ccc;
-        #             border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size:12px;">
-        #   <div><span style="display:inline-block;width:10px;height:10px;background:{self.style.palette[0]};border:1px solid #333;margin-right:6px;"></span>largest cluster ({largest_size} pts)</div>
-        #   <div><span style="display:inline-block;width:10px;height:1px;background:#111;margin:0 6px 0 0;display:inline-block;vertical-align:middle;"></span>length path ≈ {length_m:.0f} m</div>
-        #   <div><span style="display:inline-block;width:10px;height:10px;background:#7f8c8d;border:1px solid #333;margin-right:6px;"></span>outliers</div>
-        # </div>
-        # """
-        # m.get_root().html.add_child(folium.Element(legend_html))
-
-        # Header/title information will be handled by the website wrapper
-        # Keep this data available for the website to use
-        berlin = pytz.timezone("Europe/Berlin")
-        latest_unix = filtered['timestamp'].max()
-        latest_timestamp = datetime.fromtimestamp(latest_unix, tz=berlin)
-        
-        # # Store metadata for the website to access
-        # m._critical_mass_metadata = {
-        #     'length_m': length_m,
-        #     'timestamp': latest_timestamp,
-        #     'city': 'Hamburg'
-        # }
+            ).add_to(m)       
 
         # Compute desired bounds (route-focused when available), then apply without animation
         if path_indices and len(path_indices) >= 2:

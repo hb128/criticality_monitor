@@ -86,7 +86,8 @@ def filter_new_files(files: list[Path], processed_files: Set[str]) -> tuple[list
 def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
     """Use Pipeline.run_with_metrics to produce the map and metrics."""
     pipeline = Pipeline(cfg)
-    _, html_written, metrics = pipeline.run_with_metrics(file_path, out_html)
+    pipeline.add_files([file_path])
+    _, html_written, metrics = pipeline.run_with_metrics(out_html)
     return metrics
 
 def run_batch(
@@ -186,6 +187,11 @@ def run_batch(
                 all_results.append(error_result)
                 # Still mark as processed even if there was an error
                 newly_processed.add(get_file_signature(f))
+            # Save state every 10 files processed
+            if i % 10 == 0:
+                processed_files.update(newly_processed)
+                save_batch_state(state_file, processed_files, all_results)
+                print(f"Intermediate state saved after {i} files.")
     else:
         max_workers = workers_eff if workers_eff > 0 else os.cpu_count() or 1
         print(f"Running with {max_workers} workers")
@@ -264,6 +270,9 @@ def parse_args():
     p.add_argument("--step-penalty", type=float, default=5.0, help="Meters per edge (default: %(default)s).")
     p.add_argument("--min-edge-cost", type=float, default=15.0, help="Meters floor per edge (default: %(default)s).")
     p.add_argument("--bounds-expand", type=float, default=2.0, help="Bounds expansion (default: %(default)s).")
+    p.add_argument("--plot-graph", action="store_true", help="Enable graph output (plot/draw graph).")
+    p.add_argument("--clustering-timespan", type=float, default=None, help="Timespan (seconds) for clustering.")
+    p.add_argument("--path-timespan", type=float, default=None, help="Timespan (seconds) for path length (<= clustering timespan).")
     p.add_argument("--workers", type=int, default=1, help="Number of parallel workers (default: %(default)s). Use 0 or 1 for serial execution.")
     # Incremental processing options
     p.add_argument("--no-incremental", dest="incremental", action="store_false", help="Disable incremental processing (process all files)")
@@ -295,6 +304,9 @@ def main():
         L0=a.L0, penalty_factor=a.penalty_factor,
         angle_bias_m_per_rad=a.angle_bias, step_penalty_m=a.step_penalty, min_edge_cost_m=a.min_edge_cost,
         bounds_expand=a.bounds_expand,
+        plot_graph=a.plot_graph, graph_cost_mode='adj', graph_out=None,
+        clustering_timespan_s=a.clustering_timespan,
+        path_timespan_s=a.path_timespan,
     )
 
     try:

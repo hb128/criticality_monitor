@@ -34,33 +34,6 @@ def _to_berlin(dt_val):
     except Exception:
         return None
 
-
-def prepare_recent_data(df: pd.DataFrame, limit: int) -> dict:
-    """Prepare recent rides data for display (dates shown in Europe/Berlin local time)."""
-    if df.empty:
-        return {'records': []}
-    
-    recent = df.tail(limit)
-    records = []
-    
-    for _, row in recent.iterrows():
-        # Handle date conversion safely
-        date_str = 'Unknown'
-        if 't' in row and pd.notna(row['t']):
-            local_dt = _to_berlin(row['t'])
-            if local_dt is not None:
-                date_str = local_dt.strftime('%d.%m.%Y')
-        
-        record = {
-            'length_m': float(row.get('length_m', 0)) if pd.notna(row.get('length_m')) else 0,
-            'date': date_str,
-            'participants': int(row.get('n_filtered', 0)) if 'n_filtered' in row and pd.notna(row.get('n_filtered')) else None,
-            'city': str(row.get('city', 'Unknown')) if pd.notna(row.get('city')) else 'Unknown',
-        }
-        records.append(record)
-    
-    return {'records': records}
-
 def prepare_city_leaderboard_data(combined_df: pd.DataFrame, limit: int = 10) -> dict:
     """Prepare leaderboard of cities by their most recent longest route (dates in Berlin time)."""
     if combined_df.empty or 'city' not in combined_df.columns:

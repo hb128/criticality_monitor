@@ -36,9 +36,8 @@ from cm_modular.pipeline import PipelineConfig
 def parse_args():
     p = argparse.ArgumentParser(description="Run batch_build + build_enhanced_site in one step.")
     p.add_argument("indir", help="Input directory containing JSON/.txt location files")
-    p.add_argument("--city", type=str, default=None, help="City preset name (overrides bbox).")
+    p.add_argument("--city", type=str, default="hamburg", help="City preset name (overrides bbox).")
     p.add_argument("--site-out", type=str, default=None, help="Base site output directory (default: site/<city> or site).")
-    p.add_argument("--maps-subdir", default="maps", help="Subdirectory under site-out for individual map HTML. Default: %(default)s")
     p.add_argument("--patterns", nargs="+", default=["*.txt", "*.json"], help="Glob patterns to include. Default: %(default)s")
     p.add_argument("--workers", type=int, default=1, help="Parallel workers for batch build. Default: %(default)s")
     # Pipeline overrides (mirrors batch_build / build_map)
@@ -54,9 +53,8 @@ def parse_args():
     p.add_argument("--step-penalty", type=float, default=5.0, help="Step penalty. Default: %(default)s")
     p.add_argument("--min-edge-cost", type=float, default=15.0, help="Minimum edge cost. Default: %(default)s")
     p.add_argument("--bounds-expand", type=float, default=2.0, help="Bounds expand factor. Default: %(default)s")
-    # Site build options
-    p.add_argument("--title", default=None, help="Optional site title.")
-    p.add_argument("--no-copy-maps", dest="copy_maps", action="store_false", help="Do not copy map HTML files into site")
+    p.add_argument("--recalculate", action="store_true", help="Recalculate all data.")
+    p.add_argument("--max-minutes-plot", type=int, default=120, help="Number of minutes to show in the time series plot (default: %(default)s)")
     return p.parse_args()
 
 
@@ -71,10 +69,9 @@ def main():
     if a.site_out:
         site_base = Path(a.site_out).expanduser().resolve()
     else:
-        site_base = Path("site") / (a.city.lower() if a.city else "")
+        site_base = Path("data/sites")
         site_base = site_base.resolve()
-
-    maps_dir = site_base / a.maps_subdir
+    maps_dir = site_base / (a.city.lower() if a.city else "")
     maps_dir.mkdir(parents=True, exist_ok=True)
 
     # Configure pipeline
@@ -89,7 +86,7 @@ def main():
 
     # Run batch via shared function
     try:
-        state_path = bb.run_batch(indir, maps_dir, a.patterns, cfg, workers=a.workers)
+        state_path = bb.run_batch(indir, maps_dir, a.patterns, cfg, workers=a.workers, incremental=not a.recalculate)
     except FileNotFoundError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
@@ -99,11 +96,11 @@ def main():
         data_path=state_path,
         outdir=site_base,
         city=a.city or "Criticality Monitor",
-        copy_maps=a.copy_maps,
-        maps_subdir=a.maps_subdir,
+        html_name=f"{a.city.lower()}.html",
+        max_minutes_plot=a.max_minutes_plot
     )
 
-    print(f"Done. Open: {site_base / 'index.html'}")
+    print(f"Done. Open: {site_base / f'{a.city.lower()}.html'}")
 
 
 if __name__ == "__main__":

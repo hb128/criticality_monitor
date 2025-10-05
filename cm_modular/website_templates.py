@@ -9,7 +9,6 @@ import json
 
 def render_enhanced_html(
     city: str,
-    recent_data: dict,
     leaderboard_data: dict,
     current_stats: dict,
     plot_data: dict,
@@ -17,7 +16,6 @@ def render_enhanced_html(
     """Render the enhanced HTML page."""
     
     data_json = json.dumps({
-        'recent': recent_data,
         'leaderboard': leaderboard_data,
         'stats': current_stats,
         'plot': plot_data,
