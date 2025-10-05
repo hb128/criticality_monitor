@@ -6,7 +6,6 @@ Buildef build_enhanced_site(
     city: str = "Hamburg",
     copy_maps: bool = True,
     maps_subdir: str = "maps",
-    query: str = None,
     recent_limit: int = 30
     ) -> None:nced Criticality Monitor website with header, metrics, leaderboard, and map.
 
@@ -44,7 +43,6 @@ def build_enhanced_site(
     city: str = "Hamburg",
     copy_maps: bool = True,
     maps_subdir: str = "maps",
-    query: str = None,
     recent_limit: int = 30
 ) -> None:
     """Build an enhanced Criticality Monitor website from JSON state file."""
@@ -64,10 +62,6 @@ def build_enhanced_site(
         
     df = pd.DataFrame(results)
     df = ensure_time_column(df)
-    
-    if query:
-        print(f"Applying query: {query}")
-        df = df.query(query)
     
     print(f"Processing {len(df)} records")
     
@@ -138,7 +132,6 @@ def parse_args():
     p.add_argument("--city", default="Hamburg", help="City name (default: Hamburg)")
     p.add_argument("--copy-maps", default=False, action="store_true", help="Copy map files")
     p.add_argument("--maps-subdir", default="maps", help="Maps subdirectory (default: maps)")
-    p.add_argument("--query", default=None, help="Pandas query to filter data")
     p.add_argument("--recent-limit", type=int, default=30, help="Number of recent rides for plot (default: 30)")
     return p.parse_args()
 
@@ -155,7 +148,6 @@ def main():
         city=args.city,
         copy_maps=args.copy_maps,
         maps_subdir=args.maps_subdir,
-        query=args.query,
         recent_limit=args.recent_limit
     )
 
