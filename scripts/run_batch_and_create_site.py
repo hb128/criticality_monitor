@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 """
-Better script name suggestion: build_city_website.py
+Better script name suggestion: run_batch_and_create_site.py
 
 Convenience wrapper: run batch_build then build_enhanced_site for a city.
 
 Example:
-    python -m scripts.build_city_website cm_logs/20220624 --city zurich --workers 4 --no-copy-maps
-
-This expands to roughly:
-    python -m scripts.batch_build cm_logs/20220624 --city zurich --outdir site/zurich/maps --workers 4
-    python -m scripts.build_enhanced_site site/zurich/maps/results.json --outdir site/zurich --no-copy-maps
-
-Options let you override defaults similarly to the underlying scripts.
+    python -m scripts.run_batch_and_create_site data/logs/20220624 --city zurich
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +33,6 @@ def parse_args():
     p.add_argument("--city", type=str, default="hamburg", help="City preset name (overrides bbox).")
     p.add_argument("--site-out", type=str, default=None, help="Base site output directory (default: site/<city> or site).")
     p.add_argument("--patterns", nargs="+", default=["*.txt", "*.json"], help="Glob patterns to include. Default: %(default)s")
-    p.add_argument("--workers", type=int, default=1, help="Parallel workers for batch build. Default: %(default)s")
     # Pipeline overrides (mirrors batch_build / build_map)
     p.add_argument("--lat-min", type=float, default=53.3, help="Minimum latitude. Default: %(default)s")
     p.add_argument("--lat-max", type=float, default=53.8, help="Maximum latitude. Default: %(default)s")
@@ -86,7 +79,7 @@ def main():
 
     # Run batch via shared function
     try:
-        state_path = bb.run_batch(indir, maps_dir, a.patterns, cfg, workers=a.workers, incremental=not a.recalculate)
+        state_path = bb.run_batch(indir, maps_dir, a.patterns, cfg, incremental=not a.recalculate)
     except FileNotFoundError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)

@@ -8,14 +8,13 @@ Supports incremental processing to avoid reprocessing unchanged files.
 from __future__ import annotations
 import argparse
 import sys
-import os
 import json
-import concurrent.futures
 from pathlib import Path
 from typing import Iterable, Set
 from datetime import datetime
 
 from cm_modular.pipeline import PipelineConfig, Pipeline
+import traceback
 
 def iter_files(indir: Path, patterns: list[str]) -> Iterable[Path]:
     """Yield files in *indir* matching any of the glob *patterns* (non-recursive)."""
@@ -96,7 +95,6 @@ def run_batch(
     patterns: list[str],
     cfg: PipelineConfig,
     *, # everything after this must be keyword-only
-    workers: int = 1,
     incremental: bool = True,
     state_file: Path | None = None,
 ) -> Path:
@@ -112,8 +110,6 @@ def run_batch(
         Glob patterns to include (non-recursive) e.g. ["*.txt", "*.json"].
     cfg : PipelineConfig
         Pipeline configuration.
-    workers : int, default 1
-        Parallel workers (<=1 means serial).
     incremental : bool, default True
         If True, only process files that haven't been processed before.
     state_file : Path | None
@@ -154,88 +150,43 @@ def run_batch(
         print(f"Processing all {len(files)} files (incremental mode disabled)")
 
     all_results: list[dict] = existing_results.copy()  # Start with existing data
-    workers_eff = workers if workers and workers > 1 else 1
     newly_processed = set()  # Track files processed in this run
     new_results = []  # Track only new results from this run
 
-    if workers_eff == 1:
-        for i, f in enumerate(files, 1):
-            try:
-                out_html = outdir / (f.stem + ".html")
-                print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
-                metrics = build_map_and_metrics(f, cfg, out_html)
-                new_results.append(metrics)
-                all_results.append(metrics)
-                newly_processed.add(get_file_signature(f))
-            except Exception as e:  # noqa: BLE001
-                print(f"ERROR processing {f}: {e}", file=sys.stderr)
-                error_result = {
-                    "file": str(f),
-                    "html": "",
-                    "n_points": 0,
-                    "n_bbox": 0,
-                    "n_filtered": 0,
-                    "largest_comp_size": 0,
-                    "connection_radius_m": 0.0,
-                    "length_m": 0.0,
-                    "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
-                    "L0_m": cfg.L0,
-                    "penalty_factor": cfg.penalty_factor,
-                    "error": str(e),
-                }
-                new_results.append(error_result)
-                all_results.append(error_result)
-                # Still mark as processed even if there was an error
-                newly_processed.add(get_file_signature(f))
-            # Save state every 10 files processed
-            if i % 10 == 0:
-                processed_files.update(newly_processed)
-                save_batch_state(state_file, processed_files, all_results)
-                print(f"Intermediate state saved after {i} files.")
-    else:
-        max_workers = workers_eff if workers_eff > 0 else os.cpu_count() or 1
-        print(f"Running with {max_workers} workers")
-        futures: dict[concurrent.futures.Future, tuple[int, Path, Path]] = {}
-        results: dict[int, dict] = {}
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as ex:
-            for i, f in enumerate(files, 1):
-                out_html = outdir / (f.stem + ".html")
-                print(f"[submit {i}/{len(files)}] {f.name} -> {out_html.name}")
-                futures[ex.submit(build_map_and_metrics, f, cfg, out_html)] = (i, f, out_html)
-            total = len(futures)
-            done = 0
-            for fut in concurrent.futures.as_completed(futures):
-                i, f, out_html = futures[fut]
-                done += 1
-                try:
-                    metrics = fut.result()
-                    print(f"[{done}/{total}] Done {f.name} -> {out_html.name}")
-                    results[i] = metrics
-                    newly_processed.add(get_file_signature(f))
-                except Exception as e:  # noqa: BLE001
-                    print(f"ERROR processing {f}: {e}", file=sys.stderr)
-                    results[i] = {
-                        "file": str(f),
-                        "html": "",
-                        "n_points": 0,
-                        "n_bbox": 0,
-                        "n_filtered": 0,
-                        "largest_comp_size": 0,
-                        "connection_radius_m": 0.0,
-                        "length_m": 0.0,
-                        "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
-                        "L0_m": cfg.L0,
-                        "penalty_factor": cfg.penalty_factor,
-                        "error": str(e),
-                    }
-                    # Still mark as processed even if there was an error
-                    newly_processed.add(get_file_signature(f))
-        
-        # Add parallel results to our collections
-        for i in range(1, len(files) + 1):
-            result = results[i]
-            new_results.append(result)
-            all_results.append(result)
+    for i, f in enumerate(files, 1):
+        try:
+            out_html = outdir / (f.stem + ".html")
+            print(f"[{i}/{len(files)}] Processing {f.name} -> {out_html.name}")
+            metrics = build_map_and_metrics(f, cfg, out_html)
+            new_results.append(metrics)
+            all_results.append(metrics)
+            newly_processed.add(get_file_signature(f))
+        except Exception as e:  # noqa: BLE001
+            print(f"ERROR processing {f}: {e}", file=sys.stderr)
+            traceback.print_exc()
+            error_result = {
+                "file": str(f),
+                "html": "",
+                "n_points": 0,
+                "n_bbox": 0,
+                "n_filtered": 0,
+                "largest_comp_size": 0,
+                "connection_radius_m": 0.0,
+                "length_m": 0.0,
+                "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
+                "L0_m": cfg.L0,
+                "penalty_factor": cfg.penalty_factor,
+                "error": str(e),
+            }
+            new_results.append(error_result)
+            all_results.append(error_result)
+            # Still mark as processed even if there was an error
+            newly_processed.add(get_file_signature(f))
+        # Save state every 10 files processed
+        if i % 10 == 0:
+            processed_files.update(newly_processed)
+            save_batch_state(state_file, processed_files, all_results)
+            print(f"Intermediate state saved after {i} files.")
 
     # Save combined state (processed files + all results)
     if incremental and newly_processed:
@@ -273,7 +224,6 @@ def parse_args():
     p.add_argument("--plot-graph", action="store_true", help="Enable graph output (plot/draw graph).")
     p.add_argument("--clustering-timespan", type=float, default=None, help="Timespan (seconds) for clustering.")
     p.add_argument("--path-timespan", type=float, default=None, help="Timespan (seconds) for path length (<= clustering timespan).")
-    p.add_argument("--workers", type=int, default=1, help="Number of parallel workers (default: %(default)s). Use 0 or 1 for serial execution.")
     # Incremental processing options
     p.add_argument("--no-incremental", dest="incremental", action="store_false", help="Disable incremental processing (process all files)")
     p.add_argument("--state-file", type=str, default=None, help="Path to state file for tracking processed files (default: %(default)s)")
@@ -312,7 +262,6 @@ def main():
     try:
         state_path = run_batch(
             indir, outdir, a.pattern, cfg, 
-            workers=a.workers, 
             incremental=a.incremental,
             state_file=state_file
         )

@@ -3,6 +3,24 @@ from typing import List, Tuple
 import numpy as np
 
 class GraphBuilder:
+    @staticmethod
+    def angle_bias_for_segment(x_f: np.ndarray, y_f: np.ndarray, path_indices: list[int], i: int) -> float:
+        """Compute angle-bias for segment i in path_indices."""
+        if i == 0:
+            return 1.0
+        prev_idx = path_indices[i - 1]
+        idx_start = path_indices[i]
+        idx_stop = path_indices[i + 1]
+        v1 = np.array([x_f[idx_start] - x_f[prev_idx], y_f[idx_start] - y_f[prev_idx]])
+        v2 = np.array([x_f[idx_stop] - x_f[idx_start], y_f[idx_stop] - y_f[idx_start]])
+        norm1 = np.linalg.norm(v1)
+        norm2 = np.linalg.norm(v2)
+        if norm1 > 1e-8 and norm2 > 1e-8:
+            dot = np.dot(v1, v2) / (norm1 * norm2)
+            dot = np.clip(dot, -1.0, 1.0)
+            angle = np.arccos(dot)
+            return 1.0 + angle / np.pi
+        return 1.0
     """Build adjacency graphs and connected components."""
     @staticmethod
     def build_graph(D: np.ndarray, k_med: float, L0: float = 50.0, penalty_factor: float = 0.0) -> tuple[list[list[tuple[int, float]]], float]:

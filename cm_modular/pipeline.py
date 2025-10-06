@@ -105,8 +105,9 @@ class Pipeline:
             min_ts = max_ts - self.cfg.clustering_timespan_s
             clustering_df = hh[hh["timestamp"] >= min_ts].copy().reset_index(drop=True)
 
+        minimum_points = max(10,self.cfg.k+1)
         # Early exit for small sample sizes BEFORE KNN filtering / graphing.
-        if len(clustering_df) < 10:
+        if len(clustering_df) < minimum_points:
             print(f"Points in bbox (clustering timespan): {len(clustering_df)}")
             n = len(clustering_df)
             clustering_df = clustering_df.copy()
@@ -194,11 +195,16 @@ class Pipeline:
         start_idx = end_idx = None
         length_m = 0.0
         router = None
+        segment_metrics = []
+        main_path_indices = []
         if order:
             main = comps[order[0]]
             # Only consider indices in path_df for path endpoints, but keep full graph
-            path_df_indices_set = set(path_df.index)
-            main_path_indices = [i for i in main if i in path_df_indices_set]
+            if path_df is not None:
+                path_df_indices_set = set(path_df.index)
+                main_path_indices = [i for i in main if i in path_df_indices_set]
+            else:
+                main_path_indices = []
             if len(main_path_indices) >= 2:
                 router = AngleBiasedRouter(
                     x_f, y_f,
@@ -215,7 +221,6 @@ class Pipeline:
                 a = max(main_path_indices, key=lambda i: dist0[i])
                 dist_a, _ = router.dijkstra_plain(adj_geom, a)
                 b = max(main_path_indices, key=lambda i: dist_a[i])
-                # print(f"Selected endpoints (by geometric dist): {a} (dist: {dist0[a]}) - {b} (dist: {dist_a[b]})")
 
                 # 3) Compute path with penalized/angle-biased router (on adjacency 'adj')
                 _, prev_a, bestprev_a = router.dijkstra(adj, a)
@@ -223,6 +228,19 @@ class Pipeline:
                 start_idx, end_idx = a, b
                 # 4) True geometric length for display/metrics
                 length_m = router.path_true_length_m(D_f, path_indices)
+                # 5) Compute per-segment metrics (geometric and angle-biased lengths)
+                for i in range(len(path_indices) - 1):
+                    idx_start = path_indices[i]
+                    idx_stop = path_indices[i + 1]
+                    geo_len = float(D_f[idx_start, idx_stop])
+                    angle_bias = GraphBuilder.angle_bias_for_segment(x_f, y_f, path_indices, i)
+                    angle_len = geo_len * angle_bias
+                    segment_metrics.append({
+                        "start": idx_start,
+                        "stop": idx_stop,
+                        "geo_len": geo_len,
+                        "angle_len": angle_len
+                    })
         else:
             # no components (all filtered out)
             path_indices = []
@@ -249,32 +267,30 @@ class Pipeline:
             "length_m": length_m,
             "router": router,
             "path_df": path_df,
+            "segment_metrics": segment_metrics,
         }
 
 
-    def run(self, out_html: str | Path | None = None):
+    def run(self, out_html: str | Path | None = None, return_metrics: bool = False):
         """Execute full pipeline and save a Folium map to HTML.
 
         Parameters
         ----------
         out_html : str | Path | None
             Output HTML file. If None, writes next to first file with a default name.
+        return_metrics : bool
+            If True, also return metrics dict for batch processing.
 
         Returns
         -------
-        (m, out_path) : (folium.Map, Path)
+        (m, out_path) : (folium.Map, Path) or (folium.Map, Path, metrics)
         """
         res = self._compute()
         filtered = res["filtered"]
         outliers = res["outliers"]
         D_f = res["D_f"]
         adj = res["adj"]
-        sizes = res["sizes"]
-        order = res["order"]
         path_indices = res["path_indices"]
-        start_idx = res["start_idx"]
-        end_idx = res["end_idx"]
-        length_m = res["length_m"]
         router = res["router"]
 
         # Optional static graph plot (lon/lat positions)
@@ -298,41 +314,11 @@ class Pipeline:
             outliers=outliers,
             path_indices=path_indices,
             bounds_expand=self.cfg.bounds_expand,
-            path_df=res["path_df"]
+            path_df=res["path_df"],
+            segment_metrics=res["segment_metrics"]
         )
 
         # Use first file for default output name
-        first_file = self.file_paths[0] if self.file_paths else "output"
-        if out_html is None:
-            out_html = Path(first_file).with_suffix("").name + ".html"
-            out_html = Path(out_html)
-        else:
-            out_html = Path(out_html)
-            base_stem = Path(first_file).with_suffix("").name
-            default_filename = base_stem + ".html"
-            if out_html.exists() and out_html.is_dir():
-                out_html = out_html / default_filename
-            elif out_html.suffix == "":
-                out_html.mkdir(parents=True, exist_ok=True)
-                out_html = out_html / default_filename
-            else:
-                out_html.parent.mkdir(parents=True, exist_ok=True)
-        m.save(str(out_html))
-        return m, out_html
-
-    def run_with_metrics(self, out_html: str | Path | None = None):
-        """Like run(), but also returns a metrics dict for batch processing."""
-        res = self._compute()
-
-        # Use path_df from res for highlighting
-        m = self.map_builder.build(
-            filtered=res["filtered"],
-            outliers=res["outliers"],
-            path_indices=res["path_indices"],
-            bounds_expand=self.cfg.bounds_expand,
-            path_df=res["path_df"]
-        )
-
         first_file = self.file_paths[0] if self.file_paths else "output"
         if out_html is None:
             out_html_path = Path(first_file).with_suffix("").name + ".html"
@@ -348,33 +334,32 @@ class Pipeline:
                 out_html_path = out_html_path / default_filename
             else:
                 out_html_path.parent.mkdir(parents=True, exist_ok=True)
-
         m.save(str(out_html_path))
 
-        df = res["df"]
-        hh = res["hh"]
-        filtered = res["filtered"]
-        sizes = res["sizes"]
-        order = res["order"]
-        metrics = {
-            "n_points": int(len(df)),
-            "n_bbox": int(len(hh)),
-            "n_filtered": int(len(filtered)),
-            "largest_comp_size": int(sizes[order[0]]) if order else 0,
-            "connection_radius_m": float(res["radius_m"]),
-            "length_m": float(res["length_m"]),
-            "angle_bias_m_per_rad": float(self.cfg.angle_bias_m_per_rad),
-            "L0_m": float(self.cfg.L0),
-            "penalty_factor": float(self.cfg.penalty_factor),
-            "city": self.cfg.city,  # Add city from config
-            "clustering_timespan_s": self.cfg.clustering_timespan_s,
-            "path_timespan_s": self.cfg.path_timespan_s,
-            "files": [str(f) for f in self.file_paths],
-        }
+        if return_metrics:
+            df = res["df"]
+            hh = res["hh"]
+            sizes = res["sizes"]
+            order = res["order"]
+            metrics = {
+                "n_points": int(len(df)),
+                "n_bbox": int(len(hh)),
+                "n_filtered": int(len(filtered)),
+                "largest_comp_size": int(sizes[order[0]]) if order else 0,
+                "connection_radius_m": float(res["radius_m"]),
+                "length_m": float(res["length_m"]),
+                "angle_bias_m_per_rad": float(self.cfg.angle_bias_m_per_rad),
+                "L0_m": float(self.cfg.L0),
+                "penalty_factor": float(self.cfg.penalty_factor),
+                "city": self.cfg.city,
+                "clustering_timespan_s": self.cfg.clustering_timespan_s,
+                "path_timespan_s": self.cfg.path_timespan_s,
+                "files": [str(f) for f in self.file_paths],
+                "html": str(out_html_path),
+            }
+            return m, out_html_path, metrics
+        return m, out_html_path
 
-        metrics_with_paths = {
-            **metrics,
-            "html": str(out_html_path),
-        }
-
-        return m, out_html_path, metrics_with_paths
+    def run_with_metrics(self, out_html: str | Path | None = None):
+        """Like run(), but also returns a metrics dict for batch processing."""
+        return self.run(out_html=out_html, return_metrics=True)

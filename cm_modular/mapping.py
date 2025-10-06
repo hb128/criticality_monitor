@@ -35,6 +35,7 @@ class MapBuilder:
         path_indices: list[int] | None,
         bounds_expand: float = 2.0,
         path_df: pd.DataFrame | None = None,  # DataFrame of points within path-timespan
+        segment_metrics: list[dict] | None = None,  # Precomputed segment metrics
     ) -> folium.Map:
         # compute overall bbox (fallback)
         lat_min, lat_max = filtered["lat"].min(), filtered["lat"].max()
@@ -93,14 +94,21 @@ class MapBuilder:
                 tooltip="outlier",
             ).add_to(m)
 
-        if path_indices:
-            latlons = list(zip(filtered.loc[path_indices, "lat"], filtered.loc[path_indices, "lon"]))
-            folium.PolyLine(
-                locations=latlons,
-                weight=3,
-                color=self.style.path_color,
-                opacity=0.9,
-            ).add_to(m)       
+        if segment_metrics is not None:
+            # Use precomputed segment_metrics if provided
+            for seg in segment_metrics:
+                idx_start = seg["start"]
+                idx_stop = seg["stop"]
+                lat_start, lon_start = filtered.loc[idx_start]["lat"], filtered.loc[idx_start]["lon"]
+                lat_stop, lon_stop = filtered.loc[idx_stop]["lat"], filtered.loc[idx_stop]["lon"]
+                tooltip = f"{idx_start} → {idx_stop}, geo: {seg['geo_len']:.5f}, angle: {seg['angle_len']:.5f}"
+                folium.PolyLine(
+                    locations=[(lat_start, lon_start), (lat_stop, lon_stop)],
+                    weight=3,
+                    color=self.style.path_color,
+                    opacity=0.9,
+                    tooltip=tooltip,
+                ).add_to(m)
 
         # Compute desired bounds (route-focused when available), then apply without animation
         if path_indices and len(path_indices) >= 2:
