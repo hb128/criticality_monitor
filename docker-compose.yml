@@ -24,7 +24,7 @@ services:
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/watch_and_process.py --city hamburg --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
-      - automated-logger
+      - logger
 
   # Batch processor for city 2 (Berlin)
   batch-processor-berlin:
@@ -39,7 +39,7 @@ services:
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/watch_and_process.py --city berlin --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
-      - automated-logger
+      - logger
 
   # Batch processor for city 3 (Zurich)
   batch-processor-zurich:
@@ -54,7 +54,7 @@ services:
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/watch_and_process.py --city zurich --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
-      - automated-logger
+      - logger
 
   # Batch processor for city 4 (Brussels)
   batch-processor-brussels:
@@ -69,24 +69,9 @@ services:
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/watch_and_process.py --city brussels --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
-      - automated-logger
+      - logger
 
-  # Batch processor for city 5 (Cologne)
-  batch-processor-cologne:
-    build: .
-    container_name: batch-processor-cologne
-    restart: unless-stopped
-    volumes:
-      - ./data/logs:/app/data/logs
-      - ./data/site:/app/data/site
-      - ./config:/app/config
-      - ./cm_modular:/app/cm_modular:ro
-      - ./scripts:/app/scripts:ro
-    command: python /app/scripts/watch_and_process.py --city cologne --watch-dir /app/data/logs --output-dir /app/data/site
-    depends_on:
-      - automated-logger
-
-  # Batch processor for city 5 (Cologne)
+  # Batch processor for city 5 (munich)
   batch-processor-munich:
     build: .
     container_name: batch-processor-munich
@@ -99,7 +84,7 @@ services:
       - ./scripts:/app/scripts:ro
     command: python /app/scripts/watch_and_process.py --city munich --watch-dir /app/data/logs --output-dir /app/data/site
     depends_on:
-      - automated-logger
+      - logger
 
   # Enhanced site builder - processes results and builds websites
   watch_and_build_site:

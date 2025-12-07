@@ -74,7 +74,6 @@ class FileWatcher:
                 outdir=self.output_dir,
                 patterns=self.patterns,
                 cfg=cfg,
-                workers=self.workers,
                 incremental=True  # Enable incremental processing for watchers
             )
             print(f"Batch processing completed. State saved to: {state_path}")

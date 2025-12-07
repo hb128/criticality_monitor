@@ -42,7 +42,7 @@ ensure_dir() {
 }
 
 # Base required dirs
-BASE_DIRS="/app/data/sites /app/data/logs"
+BASE_DIRS="/app/data/site /app/data/logs"
 
 # Discover cities dynamically
 # Priority order:

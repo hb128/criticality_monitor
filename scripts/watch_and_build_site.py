@@ -135,8 +135,6 @@ class SiteBuilder:
                 outdir=main_output,
                 # Use the configured primary city instead of hardcoding
                 city=self.primary_city,
-                copy_maps=False,  # Don't copy individual maps
-                recent_limit=50
             )
             
             print("Combined leaderboard site built successfully")
@@ -185,7 +183,7 @@ def parse_args():
     
     parser.add_argument("--interval", type=int, default=1, help="Check interval in seconds (default: %(default)s)")
     parser.add_argument("--primary-city", type=str, default="hamburg", help="Primary city name (default: %(default)s)")
-    parser.add_argument("--site-root", type=str, default="/app/site", help="Root directory for sites (default: %(default)s)")
+    parser.add_argument("--site-root", type=str, default="/app/site/", help="Root directory for sites (default: %(default)s)")
     
     return parser.parse_args()
 

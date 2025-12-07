@@ -36,7 +36,7 @@ class PipelineConfig:
     lon_max: float = 10.35
 
     # KNN filter
-    k: int = 4
+    k: int = 10
     n_sigmas: float = 3.0
 
     # Graph penalties
@@ -161,6 +161,7 @@ class Pipeline:
                 "length_m": length_m,
                 "router": router,
                 "path_df": path_df,
+                "segment_metrics": [],
             }
 
         # base geometry + KNN filter
