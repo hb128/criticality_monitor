@@ -3,3 +3,6 @@
 *.txt
 data/
 site/
+
+# pytest-benchmark
+.benchmarks/
