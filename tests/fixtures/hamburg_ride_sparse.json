@@ -1,0 +1,204 @@
+{
+  "locations": {
+    "id_1": {
+      "latitude": 53587761,
+      "longitude": 10051306,
+      "timestamp": 1758915587
+    },
+    "id_2": {
+      "latitude": 47329442,
+      "longitude": 8573799,
+      "timestamp": 1758915606
+    },
+    "id_3": {
+      "latitude": 53550050,
+      "longitude": 9972385,
+      "timestamp": 1758915577
+    },
+    "id_4": {
+      "latitude": 50859387,
+      "longitude": 4360619,
+      "timestamp": 1758915537
+    },
+    "id_5": {
+      "latitude": 53663527,
+      "longitude": 9477865,
+      "timestamp": 1758915569
+    },
+    "id_6": {
+      "latitude": 50341004,
+      "longitude": 8745049,
+      "timestamp": 1758915626
+    },
+    "id_7": {
+      "latitude": 48137102,
+      "longitude": 11589368,
+      "timestamp": 1758915576
+    },
+    "id_8": {
+      "latitude": 53557104,
+      "longitude": 9964361,
+      "timestamp": 1758915574
+    },
+    "id_9": {
+      "latitude": 52519110,
+      "longitude": 13402062,
+      "timestamp": 1758915461
+    },
+    "id_10": {
+      "latitude": 51940221,
+      "longitude": 7617017,
+      "timestamp": 1758915617
+    },
+    "id_11": {
+      "latitude": 50836344,
+      "longitude": 4404483,
+      "timestamp": 1758915599
+    },
+    "id_12": {
+      "latitude": 52231603,
+      "longitude": 10561452,
+      "timestamp": 1758915583
+    },
+    "id_13": {
+      "latitude": 52418853,
+      "longitude": 13344046,
+      "timestamp": 1758915611
+    },
+    "id_14": {
+      "latitude": 50800917,
+      "longitude": 4341106,
+      "timestamp": 1758915602
+    },
+    "id_15": {
+      "latitude": 53550604,
+      "longitude": 9969871,
+      "timestamp": 1758915582
+    },
+    "id_16": {
+      "latitude": 48135125,
+      "longitude": 11588094,
+      "timestamp": 1758915614
+    },
+    "id_17": {
+      "latitude": 52522678,
+      "longitude": 13414659,
+      "timestamp": 1758915573
+    },
+    "id_18": {
+      "latitude": 52523442,
+      "longitude": 13414523,
+      "timestamp": 1758915569
+    },
+    "id_19": {
+      "latitude": 51050856,
+      "longitude": 13737784,
+      "timestamp": 1758915583
+    },
+    "id_20": {
+      "latitude": 52523291,
+      "longitude": 13414041,
+      "timestamp": 1758915576
+    },
+    "id_21": {
+      "latitude": 47391014,
+      "longitude": 8527748,
+      "timestamp": 1758915607
+    },
+    "id_22": {
+      "latitude": 43701102,
+      "longitude": 7280455,
+      "timestamp": 1758915573
+    },
+    "id_23": {
+      "latitude": 53549909,
+      "longitude": 9972136,
+      "timestamp": 1758915621
+    },
+    "id_24": {
+      "latitude": -34621946,
+      "longitude": -58474526,
+      "timestamp": 1758915608
+    },
+    "id_25": {
+      "latitude": 52251594,
+      "longitude": 10533130,
+      "timestamp": 1758915612
+    },
+    "id_26": {
+      "latitude": 53550638,
+      "longitude": 9968787,
+      "timestamp": 1758915601
+    },
+    "id_27": {
+      "latitude": 52502101,
+      "longitude": 13385680,
+      "timestamp": 1758915596
+    },
+    "id_28": {
+      "latitude": 51036264,
+      "longitude": 13785164,
+      "timestamp": 1758915614
+    },
+    "id_29": {
+      "latitude": 53550537,
+      "longitude": 9968867,
+      "timestamp": 1758915623
+    },
+    "id_30": {
+      "latitude": 51950807,
+      "longitude": 7642617,
+      "timestamp": 1758915393
+    },
+    "id_31": {
+      "latitude": 52423242,
+      "longitude": 13279780,
+      "timestamp": 1758915626
+    },
+    "id_32": {
+      "latitude": 53580081,
+      "longitude": 9999676,
+      "timestamp": 1758915609
+    },
+    "id_33": {
+      "latitude": 53645093,
+      "longitude": 10093299,
+      "timestamp": 1758915583
+    },
+    "id_34": {
+      "latitude": 52520787,
+      "longitude": 13421129,
+      "timestamp": 1758915574
+    },
+    "id_35": {
+      "latitude": -34681261,
+      "longitude": -58739358,
+      "timestamp": 1758915601
+    },
+    "id_36": {
+      "latitude": 52523233,
+      "longitude": 13414153,
+      "timestamp": 1758915594
+    },
+    "id_37": {
+      "latitude": -34637313,
+      "longitude": -58474626,
+      "timestamp": 1758915601
+    },
+    "id_38": {
+      "latitude": 52523371,
+      "longitude": 13413854,
+      "timestamp": 1758915625
+    },
+    "id_39": {
+      "latitude": 47382151,
+      "longitude": 8514525,
+      "timestamp": 1758915601
+    },
+    "id_40": {
+      "latitude": 52505444,
+      "longitude": 13320960,
+      "timestamp": 1758915401
+    }
+  }
+}
