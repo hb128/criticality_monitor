@@ -60,23 +60,3 @@ class GraphBuilder:
                         cost += penalty_factor * (length - L0)
                     adj[i].append((j, cost))
         return adj, r
-
-    @staticmethod
-    def components(adj: list[list[tuple[int, float]]]) -> list[list[int]]:
-        """Compute weakly-connected components for a directed adjacency list (treated as undirected)."""
-        n = len(adj)
-        seen = [False] * n
-        comps: list[list[int]] = []
-        for i in range(n):
-            if seen[i]:
-                continue
-            stack = [i]; seen[i] = True; nodes = [i]
-            while stack:
-                u = stack.pop()
-                for v, _ in adj[u]:
-                    if not seen[v]:
-                        seen[v] = True
-                        stack.append(v)
-                        nodes.append(v)
-            comps.append(nodes)
-        return comps

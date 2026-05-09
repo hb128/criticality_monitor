@@ -23,23 +23,3 @@ def test_two_components_detected():
     assert sizes == [3, 3, 1]
     assert order == [1, 0, 2]
     assert np.array_equal(clusterid, [1, 1, 1, 0, 0, 0, 2])
-
-from cm_modular.graphing import GraphBuilder
-
-def test_graphbuilder_components_matches_clusterer():
-    # Same adjacency list from before
-    adj = [
-        [(1, 0.0), (2, 0.0)],  
-        [(0, 0.0), (2, 0.0)],  
-        [(0, 0.0), (1, 0.0)],  
-        [(4, 0.0), (5, 0.0)],  
-        [(3, 0.0), (5, 0.0)],  
-        [(3, 0.0), (4, 0.0)],  
-        []                      
-    ]
-    
-    # Get results from both methods
-    comps_clusterer, _, _, _ = Clusterer.assign_from_components(adj)
-    comps_graphbuilder = GraphBuilder.components(adj)
-    
-    assert comps_clusterer == comps_graphbuilder
