@@ -72,3 +72,17 @@ def test_deg2meters_reasonable_for_city_scale():
     distance = np.hypot(x[1] - x[0], y[1] - y[0])
     # Distance should be in a plausible city-scale range (a few km to ~20 km)
     assert 1_000.0 < distance < 30_000.0
+
+def test_pairwise_xy_performance_baseline(benchmark):
+    n = 1000
+    rng = np.random.default_rng(123)
+    X = rng.standard_normal(n)
+    Y = rng.standard_normal(n)
+
+    def run():
+        return GeoUtils.pairwise_xy(X, Y)
+
+    D = benchmark(run)
+
+    assert D.shape == (n, n)
+    assert D.dtype == np.float64
