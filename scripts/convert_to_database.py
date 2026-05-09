@@ -39,8 +39,8 @@ def parse_position_files(input_pattern: str, db_path: str):
                 all_positions.append((
                     device_id,
                     pos['timestamp'],
-                    pos['latitude'] / 1e7,
-                    pos['longitude'] / 1e7
+                    pos['latitude'] / 1e6,
+                    pos['longitude'] / 1e6
                 ))
     # Pandas bulk insert - PRIMARY KEY auto-deduplicates
     chunk_size = 100

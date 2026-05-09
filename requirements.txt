@@ -1,9 +1,1 @@
-folium
-geopy
-matplotlib
-pandas
-playwright
-pytest
-scipy
-requests
-pytz
+streamlit
