@@ -2,3 +2,4 @@ streamlit
 folium
 pytz
 matplotlib
+pytest-benchmark
