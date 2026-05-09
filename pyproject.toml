@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "criticality-monitor"
+version = "0.0.0"
+description = "Live calculation of the length of a critical mass event."
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.setuptools]
+packages = ["cm_modular"]
