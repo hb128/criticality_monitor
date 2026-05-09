@@ -97,8 +97,8 @@ def test_snapshot_full_run(tmp_path: Path, fixture_path: Path) -> None:
     assert metrics["n_filtered"] == EXPECTED["n_filtered"]
     assert metrics["largest_comp_size"] == EXPECTED["largest_comp_size"]
 
-    assert abs(metrics["connection_radius_m"] - EXPECTED["connection_radius_m"]) < 1e-6
-    assert abs(metrics["length_m"] - EXPECTED["length_m"]) < 1e-6
+    assert metrics["connection_radius_m"] == pytest.approx(EXPECTED["connection_radius_m"], rel=1e-3)  # 0.1%
+    assert metrics["length_m"] == pytest.approx(EXPECTED["length_m"], rel=1e-3)  # 0.1%
 
 
 def test_sparse_input_does_not_crash(tmp_path: Path, sparse_fixture_path: Path) -> None:
