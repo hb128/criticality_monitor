@@ -14,6 +14,7 @@ from typing import Iterable, Set
 from datetime import datetime
 
 from cm_modular.pipeline import PipelineConfig, Pipeline
+from cm_modular.rendering import render_map
 import traceback
 
 def iter_files(indir: Path, patterns: list[str]) -> Iterable[Path]:
@@ -83,10 +84,23 @@ def filter_new_files(files: list[Path], processed_files: Set[str]) -> tuple[list
     return new_files, skipped_files
 
 def build_map_and_metrics(file_path: Path, cfg: PipelineConfig, out_html: Path):
-    """Use Pipeline.run_with_metrics to produce the map and metrics."""
+    """Run pipeline, render HTML, write file, and return metrics with file path."""
     pipeline = Pipeline(cfg)
     pipeline.add_files([file_path])
-    _, html_written, metrics = pipeline.run_with_metrics(out_html)
+    
+    # Run pipeline (pure computation)
+    result, metrics = pipeline.run_with_metrics()
+    
+    # Render and write HTML (script layer handles IO)
+    html = render_map(result, cfg)
+    out_html.parent.mkdir(parents=True, exist_ok=True)
+    out_html.write_text(html, encoding='utf-8')
+    print("Write to ", out_html)
+    
+    # Add file paths to metrics (script layer responsibility)
+    metrics['files'] = [str(file_path)]
+    metrics['html'] = str(out_html)
+    
     return metrics
 
 def run_batch(
@@ -165,7 +179,7 @@ def run_batch(
             print(f"ERROR processing {f}: {e}", file=sys.stderr)
             traceback.print_exc()
             error_result = {
-                "file": str(f),
+                "files": [str(f)],
                 "html": "",
                 "n_points": 0,
                 "n_bbox": 0,
@@ -176,6 +190,9 @@ def run_batch(
                 "angle_bias_m_per_rad": cfg.angle_bias_m_per_rad,
                 "L0_m": cfg.L0,
                 "penalty_factor": cfg.penalty_factor,
+                "city": cfg.city,
+                "clustering_timespan_s": cfg.clustering_timespan_s,
+                "path_timespan_s": cfg.path_timespan_s,
                 "error": str(e),
             }
             new_results.append(error_result)

@@ -271,9 +271,8 @@ def find_diameter(
 def collect_metrics(
     result: PipelineResult,
     cfg: PipelineConfig,
-    file_paths: list[str | Path],
-    out_html_path: Path,
-) -> dict:
+    file_paths: list[str | Path]
+    ) -> dict:
     """Stage 9: Assemble the flat metrics dict from a ``PipelineResult``."""
     r = result
     return {
@@ -289,8 +288,7 @@ def collect_metrics(
         "city": cfg.city,
         "clustering_timespan_s": cfg.clustering_timespan_s,
         "path_timespan_s": cfg.path_timespan_s,
-        "files": [str(f) for f in file_paths],
-        "html": str(out_html_path),
+        "files": [str(f) for f in file_paths]
     }
 
 def _early_exit(df: pd.DataFrame, hh: pd.DataFrame, clustering_df: pd.DataFrame) -> PipelineResult:
@@ -363,8 +361,8 @@ class Pipeline:
             length_m=length_m, router=router, segment_metrics=segment_metrics,
         )
 
-    def run(self, out_html: str | Path | None = None, return_metrics: bool = False):
-        """Execute full pipeline and save a Folium map to HTML."""
+    def run(self, return_metrics: bool = False):
+        """Execute full pipeline and return result."""
         res = self._compute()
 
         if self.cfg.plot_graph:
@@ -380,35 +378,25 @@ class Pipeline:
                 figsize=self.cfg.graph_figsize,
             )
 
-        m = self.map_builder.build(
-            filtered=res.filtered,
-            outliers=res.outliers,
-            path_indices=res.path_indices,
-            bounds_expand=self.cfg.bounds_expand,
-            path_df=res.path_df,
-            segment_metrics=res.segment_metrics,
-        )
-
-        first_file = self.file_paths[0] if self.file_paths else "output"
-        if out_html is None:
-            out_html_path = Path(Path(first_file).with_suffix("").name + ".html")
-        else:
-            out_html_path = Path(out_html)
-            base_stem = Path(first_file).with_suffix("").name
-            default_filename = base_stem + ".html"
-            if out_html_path.exists() and out_html_path.is_dir():
-                out_html_path = out_html_path / default_filename
-            elif out_html_path.suffix == "":
-                out_html_path.mkdir(parents=True, exist_ok=True)
-                out_html_path = out_html_path / default_filename
-            else:
-                out_html_path.parent.mkdir(parents=True, exist_ok=True)
-        m.save(str(out_html_path))
-
         if return_metrics:
-            return m, out_html_path, collect_metrics(res, self.cfg, self.file_paths, out_html_path)
-        return m, out_html_path
+            metrics = {
+                "n_points": int(len(res.df)),
+                "n_bbox": int(len(res.hh)),
+                "n_filtered": int(len(res.filtered)),
+                "largest_comp_size": int(res.sizes[res.order[0]]) if res.order else 0,
+                "connection_radius_m": float(res.radius_m),
+                "length_m": float(res.length_m),
+                "angle_bias_m_per_rad": float(self.cfg.angle_bias_m_per_rad),
+                "L0_m": float(self.cfg.L0),
+                "penalty_factor": float(self.cfg.penalty_factor),
+                "city": self.cfg.city,
+                "clustering_timespan_s": self.cfg.clustering_timespan_s,
+                "path_timespan_s": self.cfg.path_timespan_s,
+                "files": [str(f) for f in self.file_paths],
+            }
+            return res, metrics
+        return res
 
-    def run_with_metrics(self, out_html: str | Path | None = None):
+    def run_with_metrics(self):
         """Like run(), but also returns a metrics dict for batch processing."""
-        return self.run(out_html=out_html, return_metrics=True)
+        return self.run(return_metrics=True)

@@ -1,5 +1,6 @@
 from pathlib import Path
 from cm_modular.pipeline import PipelineConfig, Pipeline
+from cm_modular.rendering import render_map
 
 
 def visualize_json(json_path: str, city: str = "hamburg") -> None:
@@ -10,8 +11,12 @@ def visualize_json(json_path: str, city: str = "hamburg") -> None:
     p = Pipeline(config)
     p.add_files([str(json_path)])
 
-    # This will run the full pipeline and save a Folium map to out_html
-    p.run(out_html=str(out_html), return_metrics=False)
+    # Run pipeline (pure computation, no IO)
+    result = p.run()
+    
+    # Render and write HTML (script layer handles IO)
+    html = render_map(result, config)
+    out_html.write_text(html, encoding='utf-8')
 
     print(f"Wrote map to {out_html}")
 
