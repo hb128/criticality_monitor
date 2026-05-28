@@ -10,6 +10,7 @@ import sys
 import time
 import signal
 import os
+import json
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -18,8 +19,7 @@ import shutil
 # Add the parent directory to sys.path to import cm_modular
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from cm_modular.location_logger import log_locations
-
+from cm_modular.location_logger import load_locations
 
 class AutomatedLogger:
     """Automated location logger with configurable intervals and options."""
@@ -136,9 +136,13 @@ class AutomatedLogger:
                 position_count = self._copy_debug_file()
             else:
                 # Normal mode: use API
-                positions = log_locations(self.log_dir)
-                position_count = len(positions)
-            
+                positions = load_locations()
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                log_file = Path(self.log_dir) / f"{timestamp}.txt"
+                log_file.parent.mkdir(parents=True, exist_ok=True)
+                log_file.write_text(json.dumps(positions, indent=2))
+                position_count = len(positions.get('locations', []))
+
             if position_count > 0:
                 mode = "debug file" if self.debug_source else "API"
                 self._log_message(f"Successfully logged {position_count} positions from {mode}")

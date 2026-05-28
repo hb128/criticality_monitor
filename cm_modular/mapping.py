@@ -38,8 +38,14 @@ class MapBuilder:
         segment_metrics: list[dict] | None = None,  # Precomputed segment metrics
     ) -> folium.Map:
         # compute overall bbox (fallback)
-        lat_min, lat_max = filtered["lat"].min(), filtered["lat"].max()
-        lon_min, lon_max = filtered["lon"].min(), filtered["lon"].max()
+
+        if filtered.empty or "lat" not in filtered.columns or "lon" not in filtered.columns:
+            # Use default fallback
+            lat_min, lat_max = 52.9, 53.0
+            lon_min, lon_max = 10.9, 11.0
+        else:
+            lat_min, lat_max = filtered["lat"].min(), filtered["lat"].max()
+            lon_min, lon_max = filtered["lon"].min(), filtered["lon"].max()
         lat_c = (lat_min + lat_max) / 2.0
         lon_c = (lon_min + lon_max) / 2.0
 

@@ -68,17 +68,10 @@ def test_snapshot_full_run(tmp_path: Path, fixture_path: Path) -> None:
     pipeline = Pipeline(config)
     pipeline.add_files([str(fixture_path)])
 
-    out_html = tmp_path / "out.html"
-
-    # Unpack: map object, html path, metrics dict
-    _folium_map, html_path, metrics = pipeline.run(
-        out_html=str(out_html),
+    # Unpack: map object, metrics dict
+    results, metrics = pipeline.run(
         return_metrics=True,
     )
-
-    # Basic sanity checks
-    assert html_path == out_html
-    assert out_html.exists()
 
     EXPECTED = {
         "n_points": 446,
@@ -101,20 +94,14 @@ def test_snapshot_full_run(tmp_path: Path, fixture_path: Path) -> None:
     assert metrics["length_m"] == pytest.approx(EXPECTED["length_m"], rel=1e-3)  # 0.1%
 
 
-def test_sparse_input_does_not_crash(tmp_path: Path, sparse_fixture_path: Path) -> None:
+def test_sparse_input_does_not_crash(sparse_fixture_path: Path) -> None:
     config = PipelineConfig(city="hamburg")
     pipeline = Pipeline(config)
     pipeline.add_files([str(sparse_fixture_path)])
 
-    out_html = tmp_path / "out.html"
-
-    _folium_map, html_path, metrics = pipeline.run(
-        out_html=str(out_html),
+    results, metrics = pipeline.run(
         return_metrics=True,
     )
-
-    assert html_path == out_html
-    assert out_html.exists()
 
     assert metrics["length_m"] == 0.0
     assert metrics["n_filtered"] == 9

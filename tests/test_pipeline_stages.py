@@ -264,8 +264,7 @@ class TestPipelineResult:
 # ---------------------------------------------------------------------------
 
 class TestCollectMetrics:
-    def test_all_expected_keys_present(self, tmp_path, default_cfg):
-        out = tmp_path / "out.html"
+    def test_all_expected_keys_present(self, default_cfg):
         result = PipelineResult(
             has_path=False,
             df=pd.DataFrame({"a": [1]}),
@@ -276,19 +275,6 @@ class TestCollectMetrics:
             radius_m=0.0,
             length_m=0.0,
         )
-        m = collect_metrics(result, default_cfg, ["dummy.json"], out)
-        for key in ("n_points", "n_bbox", "n_filtered", "length_m", "html", "files"):
+        m = collect_metrics(result, default_cfg, ["dummy.json"])
+        for key in ("n_points", "n_bbox", "n_filtered", "length_m", "files"):
             assert key in m
-
-    def test_html_path_matches(self, tmp_path, default_cfg):
-        out = tmp_path / "test.html"
-        result = PipelineResult(
-            has_path=False,
-            df=pd.DataFrame(),
-            hh=pd.DataFrame(),
-            filtered=pd.DataFrame(),
-            sizes=np.array([]),
-            order=[],
-        )
-        m = collect_metrics(result, default_cfg, [], out)
-        assert m["html"] == str(out)

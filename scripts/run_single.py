@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 from cm_modular.pipeline import Pipeline, PipelineConfig
+from cm_modular.rendering import render_map
 
 def parse_args():
     p = argparse.ArgumentParser(description="Build cluster map with angle-biased path.")
@@ -42,6 +43,7 @@ def main():
         clustering_timespan_s=a.clustering_timespan,
         path_timespan_s=a.path_timespan,
     )
+    
     # Expand wildcards in file arguments
     expanded_files = []
     for fpattern in a.file:
@@ -51,10 +53,55 @@ def main():
             expanded_files.append(fpattern)
     if not expanded_files:
         raise FileNotFoundError("No files matched the given pattern(s).")
+    
+    # Run pipeline (pure computation, no IO)
     pipe = Pipeline(cfg)
     pipe.add_files(expanded_files)
-    m, out = pipe.run(a.out)
-    print(f"Wrote: {out}")
+    result = pipe.run()  # Returns map object and PipelineResult
+    
+    # Handle graph plotting if requested (script layer)
+    if cfg.plot_graph:
+        from cm_modular.plotting import GraphPlotter
+        import matplotlib.pyplot as plt
+        
+        fig = GraphPlotter.plot_graph(
+            filtered=result.filtered,
+            adj=result.adj,
+            D_f=result.D_f,
+            cost_mode=cfg.graph_cost_mode,
+            path_indices=result.path_indices,
+            router=result.router,
+            title=f"Graph ({cfg.graph_cost_mode} costs)",
+            figsize=cfg.graph_figsize,
+        )
+    
+        if cfg.graph_out:
+            Path(cfg.graph_out).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(cfg.graph_out, dpi=150)
+            print(f"Saved graph plot to {cfg.graph_out}")
+            plt.close(fig)
+        else:
+            plt.show()
+
+    # Determine output path
+    first_file = Path(expanded_files[0])
+    if a.out is None:
+        out_path = first_file.with_suffix("").name + ".html"
+    else:
+        out_path = Path(a.out)
+        if out_path.exists() and out_path.is_dir():
+            out_path = out_path / (first_file.with_suffix("").name + ".html")
+        elif out_path.suffix == "":
+            out_path.mkdir(parents=True, exist_ok=True)
+            out_path = out_path / (first_file.with_suffix("").name + ".html")
+        else:
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Render and write HTML (script layer handles IO)
+    html = render_map(result, cfg)
+    Path(out_path).write_text(html, encoding='utf-8')
+    
+    print(f"Wrote: {out_path}")
 
 if __name__ == "__main__":
     main()
