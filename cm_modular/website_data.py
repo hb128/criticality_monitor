@@ -162,9 +162,16 @@ def prepare_plot_data(df: pd.DataFrame, rel_links: list[str], max_minutes_plot =
         if ordered:
             times, lengths, filtered_links, cities = map(list, zip(*ordered))
 
-    return {
-        'x': [t.isoformat() if pd.notna(t) else None for t in times],  # already Berlin tz-aware
-        'y': lengths,
-        'links': filtered_links,
-        'cities': cities
-    }
+        return {
+            'x': [t.isoformat() if pd.notna(t) else None for t in times],
+            'y': lengths,
+            'links': filtered_links,
+            'cities': cities
+        }
+    else:
+        return {
+            'x': [],
+            'y': [],
+            'links': [],
+            'cities': []
+        }
