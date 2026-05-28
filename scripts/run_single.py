@@ -59,7 +59,31 @@ def main():
     pipe.add_files(expanded_files)
     result = pipe.run()  # Returns map object and PipelineResult
     
-    # Determine output path (script layer decides)
+    # Handle graph plotting if requested (script layer)
+    if cfg.plot_graph:
+        from cm_modular.plotting import GraphPlotter
+        import matplotlib.pyplot as plt
+        
+        fig = GraphPlotter.plot_graph(
+            filtered=result.filtered,
+            adj=result.adj,
+            D_f=result.D_f,
+            cost_mode=cfg.graph_cost_mode,
+            path_indices=result.path_indices,
+            router=result.router,
+            title=f"Graph ({cfg.graph_cost_mode} costs)",
+            figsize=cfg.graph_figsize,
+        )
+    
+        if cfg.graph_out:
+            Path(cfg.graph_out).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(cfg.graph_out, dpi=150)
+            print(f"Saved graph plot to {cfg.graph_out}")
+            plt.close(fig)
+        else:
+            plt.show()
+
+    # Determine output path
     first_file = Path(expanded_files[0])
     if a.out is None:
         out_path = first_file.with_suffix("").name + ".html"

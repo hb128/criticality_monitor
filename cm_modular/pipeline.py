@@ -365,19 +365,6 @@ class Pipeline:
         """Execute full pipeline and return result."""
         res = self._compute()
 
-        if self.cfg.plot_graph:
-            GraphPlotter.plot_graph(
-                filtered=res.filtered,
-                adj=res.adj,
-                D_f=res.D_f,
-                cost_mode=self.cfg.graph_cost_mode,
-                path_indices=res.path_indices,
-                router=res.router,
-                title=f"Graph ({self.cfg.graph_cost_mode} costs)",
-                out=self.cfg.graph_out,
-                figsize=self.cfg.graph_figsize,
-            )
-
         if return_metrics:
             metrics = {
                 "n_points": int(len(res.df)),
