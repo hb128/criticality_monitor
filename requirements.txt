@@ -3,3 +3,4 @@ folium
 pytz
 matplotlib
 pytest-benchmark
+duckdb
