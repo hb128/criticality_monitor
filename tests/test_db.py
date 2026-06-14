@@ -29,11 +29,11 @@ def test_init_db_creates_observations_table(conn):
 def test_observations_has_at_least_expected_columns(conn):
     cols = conn.execute("DESCRIBE observations").fetchdf()
     col_names = cols["column_name"].tolist()
-    assert {"id", "lat", "lon", "timestamp", "ingested_at", "source_file", "city"} <= set(col_names)
+    assert {"id", "lat", "lon", "timestamp", "ingested_at"} <= set(col_names)
 
 
 def test_insert_observations_writes_one_row_per_input_point(conn):
-    df = observations_from_api_payload(SAMPLE_PAYLOAD, city="Hamburg", source_file="test.txt", ingested_at=SAMPLE_INGESTED_AT)
+    df = observations_from_api_payload(SAMPLE_PAYLOAD, ingested_at=SAMPLE_INGESTED_AT)
     n = insert_observations(conn, df)
     result = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
     assert n == 2
@@ -41,19 +41,17 @@ def test_insert_observations_writes_one_row_per_input_point(conn):
 
 
 def test_insert_observations_adds_metadata_city_source_file_ingested_at(conn):
-    df = observations_from_api_payload(SAMPLE_PAYLOAD, city="Hamburg", source_file="test.txt", ingested_at=SAMPLE_INGESTED_AT)
+    df = observations_from_api_payload(SAMPLE_PAYLOAD,ingested_at=SAMPLE_INGESTED_AT)
     insert_observations(conn, df)
-    row = conn.execute("SELECT city, source_file, ingested_at FROM observations LIMIT 1").fetchone()
-    assert row[0] == "Hamburg"
-    assert row[1] == "test.txt"
-    assert row[2] == SAMPLE_INGESTED_AT
+    row = conn.execute("SELECT ingested_at FROM observations LIMIT 1").fetchone()
+    assert row[0] == SAMPLE_INGESTED_AT
 
 
 def test_insert_observations_two_batches_both_persist(conn):
-    df = observations_from_api_payload(SAMPLE_PAYLOAD, city="Hamburg", source_file="test.txt", ingested_at=SAMPLE_INGESTED_AT)
+    df = observations_from_api_payload(SAMPLE_PAYLOAD, ingested_at=SAMPLE_INGESTED_AT)
     insert_observations(conn, df)
     later = SAMPLE_INGESTED_AT + dt.timedelta(seconds=30)
-    df2 = observations_from_api_payload(SAMPLE_PAYLOAD, city="Hamburg", source_file="test.txt", ingested_at=later)
+    df2 = observations_from_api_payload(SAMPLE_PAYLOAD, ingested_at=later)
     insert_observations(conn, df2)
     result = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
     assert result == 4  # 2 IDs × 2 ingestion times, both valid observations

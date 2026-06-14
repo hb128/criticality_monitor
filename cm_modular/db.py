@@ -25,8 +25,6 @@ def init_db(conn: duckdb.DuckDBPyConnection) -> None:
 def observations_from_api_payload(
     payload: dict,
     *,
-    city: str | None,
-    source_file: str | None,
     ingested_at: datetime,
 ) -> pd.DataFrame:
     rows = []
@@ -37,8 +35,6 @@ def observations_from_api_payload(
             "lon":         entry["longitude"] / 1_000_000,
             "timestamp":   entry.get("timestamp"),
             "ingested_at": ingested_at,
-            "source_file": source_file,
-            "city":        city,
         })
     return pd.DataFrame(rows, columns=["id", "lat", "lon", "timestamp", "ingested_at", "source_file", "city"])
 
