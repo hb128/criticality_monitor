@@ -12,9 +12,11 @@ import signal
 import os
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-import shutil
+import logging
+
+from cm_modular import db
 
 # Add the parent directory to sys.path to import cm_modular
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,100 +28,36 @@ class AutomatedLogger:
     
     def __init__(self, 
                  interval: int,
-                 log_dir: str,
+                 db_path: str,
                  max_runs: Optional[int] = None,
-                 verbose: bool = False,
-                 debug_source: Optional[str] = None):
+                 loglevel = logging.INFO):
         """
         Initialize the automated logger.
         
         Args:
             interval (int): Seconds between logging runs
-            log_dir (str): Directory to save logs and maps
+            db_path (str): Path to duchdb database
             max_runs (int, optional): Maximum number of runs (None = unlimited)
-            verbose (bool): Enable verbose output
-            debug_source (str, optional): Directory containing txt files for debug mode
         """
         self.interval = interval
-        self.log_dir = log_dir
+        self.db_path = db_path
         self.max_runs = max_runs
-        self.verbose = verbose
-        self.debug_source = debug_source
         
         self.run_count = 0
         self.running = False
         
-        # Debug mode state tracking
-        self.debug_files = []
-        self.debug_file_index = 0
-        
-        if self.debug_source:
-            self._load_debug_files()
-        
+        logging.basicConfig(format='[%(asctime)s] %(levelname)s:%(name)s:%(message)s', level=loglevel)
+        self.log = logging.getLogger(self.__class__.__name__)
+
+
         # Setup signal handler for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully."""
-        print(f"\nReceived signal {signum}. Shutting down gracefully...")
+        self.log.info(f"Received signal {signum}. Shutting down gracefully...")
         self.running = False
-    
-    def _log_message(self, message: str):
-        """Log a message with timestamp if verbose mode is enabled."""
-        if self.verbose:
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print(f"[{timestamp}] {message}")
-    
-    def _load_debug_files(self):
-        """Load and sort txt files from debug source directory."""
-        if not self.debug_source:
-            return
-            
-        debug_path = Path(self.debug_source)
-        if not debug_path.exists():
-            raise FileNotFoundError(f"Warning: Debug source directory does not exist: {debug_path}")
-            
-        # Find all .txt files and sort them alphabetically
-        self.debug_files = sorted(debug_path.glob("*.txt"))
-        
-        if not self.debug_files:
-            raise FileNotFoundError(f"Warning: No .txt files found in debug source directory: {debug_path}")
-        else:
-            self._log_message(f"Loaded {len(self.debug_files)} debug files from {debug_path}")
-    
-    def _copy_debug_file(self) -> int:
-        """
-        Copy the next debug file to the log directory.
-        
-        Returns:
-            int: Number of lines copied (simulating positions count)
-        """
-        if not self.debug_files:
-            return 0
-            
-        if self.debug_file_index >= len(self.debug_files):
-            self._log_message("All debug files processed, cycling back to start")
-            self.debug_file_index = 0
-            
-        source_file = self.debug_files[self.debug_file_index]
-        self.debug_file_index += 1
-        
-        # Generate timestamp-based filename for the copy
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        dest_filename = f"{timestamp}.txt"
-        dest_path = Path(self.log_dir) / dest_filename
-        
-        # Copy the file content
-        shutil.copy2(source_file, dest_path)
-        
-        # Count lines to simulate position count
-        with open(source_file, 'r', encoding='utf-8') as f:
-            line_count = sum(1 for line in f if line.strip())
-        
-        self._log_message(f"Copied debug file: {source_file.name} -> {dest_filename} ({line_count} lines)")
-        return line_count
-
     
     def run_single_log(self) -> bool:
         """
@@ -129,54 +67,44 @@ class AutomatedLogger:
             bool: True if successful, False if failed
         """
         try:
-            self._log_message(f"Starting logging run #{self.run_count + 1}")
-            
-            if self.debug_source:
-                # Debug mode: copy a file from debug source
-                position_count = self._copy_debug_file()
-            else:
-                # Normal mode: use API
-                positions = load_locations()
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                log_file = Path(self.log_dir) / f"{timestamp}.txt"
-                log_file.parent.mkdir(parents=True, exist_ok=True)
-                log_file.write_text(json.dumps(positions, indent=2))
-                position_count = len(positions.get('locations', []))
+            self.log.info(f"Starting logging run #{self.run_count + 1}")
+            positions = load_locations()
+            position_count = len(positions.get('locations', []))
 
+            ingested_at = datetime.now(timezone.utc)
+            df = db.observations_from_api_payload(
+                positions,
+                ingested_at=ingested_at,
+            )
+            db.insert_observations(self.db_conn, df)
             if position_count > 0:
-                mode = "debug file" if self.debug_source else "API"
-                self._log_message(f"Successfully logged {position_count} positions from {mode}")
+                self.log.info(f"Successfully logged {position_count} positions.")
                 return True
             else:
-                mode = "debug directory" if self.debug_source else "API"
-                self._log_message(f"No positions logged ({mode} might be unavailable)")
+                self.log.warning(f"No positions logged (API might be unavailable)")
                 return False
                 
         except Exception as e:
-            print(f"Error during logging run: {e}")
+            self.log.error(f"Error during logging run: {e}")
             return False
     
     def start(self):
         """Start the automated logging process."""
-        print(f"Starting automated location logger...")
-        print(f"Mode: {'Debug (file replay)' if self.debug_source else 'Normal (API)'}")
-        if self.debug_source:
-            print(f"Debug source: {self.debug_source} ({len(self.debug_files)} files)")
-        print(f"Interval: {self.interval} seconds")
-        print(f"Log directory: {self.log_dir}")
-        print(f"Max runs: {self.max_runs if self.max_runs else 'unlimited'}")
-        print(f"Press Ctrl+C to stop")
-        print("-" * 50)
+        self.log.info(f"Starting automated location logger...")
+        self.log.info(f"Interval: {self.interval} seconds")
+        self.log.info(f"Log database: {self.db_path}")
+        self.log.info(f"Max runs: {self.max_runs if self.max_runs else 'unlimited'}")
+        self.log.info(f"Press Ctrl+C to stop")
         
-        # Create log directory
-        os.makedirs(self.log_dir, exist_ok=True)
-        
+        # Create database
+        self.db_conn = db.connect(self.db_path)
+        db.init_db(self.db_conn)
         self.running = True
         
         while self.running:
             # Check if we've reached the maximum number of runs
             if self.max_runs and self.run_count >= self.max_runs:
-                print(f"Reached maximum number of runs ({self.max_runs}). Stopping.")
+                self.log.info(f"Reached maximum number of runs ({self.max_runs}). Stopping.")
                 break
             
             # Run logging operation
@@ -185,16 +113,16 @@ class AutomatedLogger:
             self.run_count += 1
             
             if success:
-                print(f"Run #{self.run_count} completed successfully")
+                self.log.info(f"Run #{self.run_count} completed successfully")
             else:
-                print(f"Run #{self.run_count} failed")
+                self.log.error(f"Run #{self.run_count} failed")
             
             # Calculate sleep time (accounting for processing time)
             processing_time = time.time() - start_time
             sleep_time = max(0, self.interval - processing_time)
             
             if self.running and sleep_time > 0:
-                self._log_message(f"Waiting {sleep_time:.1f} seconds until next run...")
+                self.log.info(f"Waiting {sleep_time:.1f} seconds until next run...")
                 
                 # Sleep in small intervals to allow for graceful shutdown
                 slept = 0
@@ -203,7 +131,7 @@ class AutomatedLogger:
                     time.sleep(chunk)
                     slept += chunk
         
-        print(f"\nLogging stopped. Total runs completed: {self.run_count}")
+        self.log.info(f"Logging stopped. Total runs completed: {self.run_count}")
 
 def main():
     """Main entry point for the script."""
@@ -214,21 +142,27 @@ def main():
 Examples:
   python automated_logger.py                           # Default settings
   python automated_logger.py --interval 30            # Log every 30 seconds
-  python automated_logger.py --log-dir my_logs        # Custom directory
-  python automated_logger.py --max-runs 10 --verbose  # 10 runs with verbose output
-  python automated_logger.py --debug-source logs/20220624  # Debug mode with historical data
+  python automated_logger.py --path-db my-db        # Custom directory
+  python automated_logger.py --max-runs 10            # 10 runs 
         """
     )
     
     parser.add_argument('--interval', type=int, default=15, help='Interval between logs in seconds (default: %(default)s)')
-    parser.add_argument('--log-dir', type=str, default='data/logs', help='Custom logging directory (default: %(default)s)')
+    parser.add_argument('--db-path', type=str, default='data.db', help='Custom db path (default: %(default)s)')
     parser.add_argument('--max-runs', type=int, default=None, help='Maximum number of logging runs (default: %(default)s)')
-    parser.add_argument('--use-sample', action='store_true', help='Use sample data instead of API calls (for testing)')
-    parser.add_argument('--debug-source', type=str, default=None, help='Directory containing txt files for debug mode (replays files instead of using API)')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
-    
+    parser.add_argument(
+        '-d', '--debug',
+        help="Print lots of debugging statements",
+        action="store_const", dest="loglevel", const=logging.DEBUG,
+        default=logging.INFO,
+    )
+    # parser.add_argument(
+    #     '-v', '--verbose',
+    #     help="Be verbose",
+    #     action="store_const", dest="loglevel", const=logging.INFO,
+    # )
     args = parser.parse_args()
-    
+
     # Validate arguments
     if args.interval < 1:
         print("Error: Interval must be at least 1 second")
@@ -241,10 +175,9 @@ Examples:
     # Create and start the logger
     logger = AutomatedLogger(
         interval=args.interval,
-        log_dir=args.log_dir,
+        db_path=args.db_path,
         max_runs=args.max_runs,
-        verbose=args.verbose,
-        debug_source=args.debug_source
+        loglevel = args.loglevel
     )
     
     try:
